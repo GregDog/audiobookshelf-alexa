@@ -8,41 +8,43 @@ interface to stream tracks directly from your audiobookshelf server.
 Playback progress is synced back to audiobookshelf so it stays in sync
 with the web/mobile apps.
 
+> 🇩🇪 **Deutsche Version weiter unten** — siehe [Deutsche Anleitung](#deutsche-anleitung).
+
+---
+
+# English
+
 ## Features
 
-The default **invocation name** is `meine hörbücher` (German) and
-`my audiobooks` (English) — change it in
+The default **invocation name** is `my audiobooks` (English) and
+`meine hörbücher` (German) — change it in
 `skill-package/interactionModels/custom/*.json` if you want
 something else, but pick a multi-word phrase that Alexa's speech
 recognition can transcribe (single English words like
 "audiobookshelf" don't work in German voice mode).
 
-- **Launch** — `Alexa, öffne meine hörbücher` / `Alexa, open my audiobooks`.
-- **Play by title** — `Spiele <Titel>` / `play <title>`. Searches the
-  library, picks the top hit, and resumes from saved progress if the
-  book was already started.
-- **Continue** — `Mache weiter` / `continue` resumes the most recently
-  played in-progress audiobook. `Mache mit <Titel> weiter` /
-  `continue <title>` resumes a specific one.
-- **In-progress list** — `Welche Bücher höre ich gerade?` /
-  `What am I listening to?` lists the top five.
-- **Chapter navigation** — `Nächstes Kapitel` / `next` jumps to the
-  next chapter; `voriges Kapitel` / `previous` jumps to the previous.
-  Uses audiobookshelf's `media.chapters[]`, not file boundaries.
-- **Time-based seek** — `Spring 30 Sekunden zurück` /
-  `skip 30 seconds back`, `Spring 5 Minuten vor` /
+- **Launch** — `Alexa, open my audiobooks`.
+- **Play by title** — `play <title>`. Searches the library, picks the
+  top hit, and resumes from saved progress if the book was already
+  started.
+- **Continue** — `continue` resumes the most recently played
+  in-progress audiobook. `continue <title>` resumes a specific one.
+- **In-progress list** — `what am I listening to?` lists the top five.
+- **Chapter navigation** — `next` jumps to the next chapter;
+  `previous` jumps to the previous. Uses audiobookshelf's
+  `media.chapters[]`, not file boundaries.
+- **Time-based seek** — `skip 30 seconds back`,
   `skip 5 minutes forward`.
-- **Sleep timer** — `Stelle den Sleep Timer auf 30 Minuten` /
-  `set a sleep timer for 30 minutes`. Cancel with
-  `Sleep Timer aus` / `cancel sleep timer`. The deadline is encoded in
-  the AudioPlayer token; playback stops at the end of the next track
-  that finishes after the deadline (i.e. up to one track length of
-  overshoot — no external scheduler required).
-- **Listing** — `Liste meine Bibliotheken` / `list my libraries`,
-  `Was ist neu?` / `what is new?` for recently added books.
+- **Sleep timer** — `set a sleep timer for 30 minutes`. Cancel with
+  `cancel sleep timer`. The deadline is encoded in the AudioPlayer
+  token; playback stops at the end of the next track that finishes
+  after the deadline (i.e. up to one track length of overshoot — no
+  external scheduler required).
+- **Listing** — `list my libraries`, `what is new?` for recently added
+  books.
 - **Standard transport** — `pause`, `resume`, `stop`. Hardware
   Next/Previous buttons (`PlaybackController.*`) map to chapter skip.
-- **de-DE and en-US locales.**
+- **en-US and de-DE locales.**
 
 ## Prerequisites
 
@@ -304,8 +306,8 @@ You'll paste it in step 11.
 2. Click **Create Skill**.
 3. **Skill name:** `Audiobookshelf` (or anything you like — this is
    not the invocation name).
-4. **Primary locale:** German (DE) if you'll mostly speak German;
-   English (US) otherwise. You can add the other locale later.
+4. **Primary locale:** English (US) if you'll mostly speak English;
+   German (DE) otherwise. You can add the other locale later.
 5. **Experience type:** **Other → Custom**.
 6. **Hosting:** **Provision your own** (you have a Lambda already).
 7. **Template:** **Start from scratch**.
@@ -315,8 +317,8 @@ You'll land in the skill builder. Now upload the interaction model:
 
 1. In the left sidebar, click **JSON Editor** under **Interaction
    Model**.
-2. Open `skill-package/interactionModels/custom/de-DE.json` (or
-   `en-US.json`) on your computer in a text editor, copy its full
+2. Open `skill-package/interactionModels/custom/en-US.json` (or
+   `de-DE.json`) on your computer in a text editor, copy its full
    contents, and paste them into the JSON Editor, replacing whatever's
    there. (You can also drag-and-drop the file onto the editor.)
 3. Click **Save Model** (top of page).
@@ -325,23 +327,20 @@ You'll land in the skill builder. Now upload the interaction model:
 5. If you want both locales: top-right language picker → add the other
    locale and repeat.
 
-> **About the invocation name.** The shipped `de-DE.json` uses
-> `meine hörbücher` ("my audiobooks") as the invocation name. This is
-> deliberate — Alexa's German speech recognition transcribes
-> "audiobookshelf" as three words ("audio book shelf") and won't
-> match a single-word `audiobookshelf` invocation. Multi-word German
-> phrases also pass certification because Amazon disallows
-> single-word invocation names for non-brand skills. If you change
-> the `invocationName` field in the JSON, keep it to two or more
-> common-language words.
+> **About the invocation name.** The shipped models use
+> `my audiobooks` / `meine hörbücher` as the invocation name. If you
+> change the `invocationName` field in the JSON, keep it to two or more
+> common-language words — Amazon disallows single-word invocation
+> names for non-brand skills, and Alexa's speech recognition handles
+> multi-word phrases more reliably (especially in German, where
+> "audiobookshelf" is transcribed as three separate words).
 
 ### Step 10b — Enable the AudioPlayer interface (REQUIRED)
 
 This step is easy to miss but **the skill will not play audio
 without it.** Without AudioPlayer enabled, your Echo will respond
-with *"Bei der Antwort des angeforderten Skill ist ein Problem
-aufgetreten"* / *"There was a problem with the requested skill's
-response"* whenever you ask it to play a book.
+with *"There was a problem with the requested skill's response"*
+whenever you ask it to play a book.
 
 1. Still in the Alexa skill builder, click **Interfaces** in the left
    sidebar (under **Build**).
@@ -380,16 +379,16 @@ invoking it.
    page from **"Off"** to **"Development"**. **This is required —
    without it your Echo doesn't see the skill.**
 3. In the test simulator panel on the left, type:
-   `öffne meine hörbücher` (German) / `open my audiobooks` (English).
+   `open my audiobooks`.
 4. You should hear/see the welcome message.
-5. Try `mache weiter` / `continue` — Lambda returns an
-   `AudioPlayer.Play` directive in the JSON Output panel.
+5. Try `continue` — Lambda returns an `AudioPlayer.Play` directive in
+   the JSON Output panel.
 
 > **The simulator can't play audio.** When the Lambda returns an
-> `AudioPlayer.Play` directive, the Test simulator displays *"Bei
-> der Antwort des angeforderten Skill ist ein Problem aufgetreten"*.
-> That message is the simulator's own limitation, **not** an actual
-> error. Check the JSON Output panel — if you see a properly formed
+> `AudioPlayer.Play` directive, the Test simulator displays *"There
+> was a problem with the requested skill's response"*. That message
+> is the simulator's own limitation, **not** an actual error. Check
+> the JSON Output panel — if you see a properly formed
 > `AudioPlayer.Play` directive with a stream URL, the skill is
 > working and the audio will play on a real Echo.
 
@@ -397,9 +396,9 @@ For real audio playback, talk to **a real Echo device on the same
 Amazon account** as your developer console:
 
 ```
-"Alexa, öffne meine hörbücher"
-"mache weiter"
-"Alexa, sage meine hörbücher spiele <buchtitel>"
+"Alexa, open my audiobooks"
+"continue"
+"Alexa, ask my audiobooks to play <book title>"
 ```
 
 Skills in Development mode are automatically enabled on your own
@@ -417,24 +416,23 @@ the Alexa app.
 
 | Symptom | Likely cause / fix |
 |---|---|
-| **Echo: "Bei der Antwort des angeforderten Skill ist ein Problem aufgetreten"** / "There was a problem with the requested skill's response" — but the skill opens fine and only fails on `mache weiter` / `spiele …` | The **AudioPlayer interface is not enabled** for the skill. Go to the skill builder → **Interfaces** → toggle **Audio Player** ON → **Save** → **Build skill**. (See Step 10b.) |
-| **Echo: "Ich weiß nicht, wie ich dir dabei helfen kann"** / "I don't know how to help you with that" when you say "Alexa, öffne …" | Either (a) the skill's **Test toggle is "Off"** in the developer console (set to **Development**), or (b) the **invocation name** can't be transcribed by Alexa's speech recognition. Check the Alexa **voice history** (alexa.amazon.de → Aktivität → Sprachverlauf) to see what Alexa thought you said, and pick a multi-word invocation name that matches the transcription. |
+| **Echo: "There was a problem with the requested skill's response"** — but the skill opens fine and only fails on `continue` / `play …` | The **AudioPlayer interface is not enabled** for the skill. Go to the skill builder → **Interfaces** → toggle **Audio Player** ON → **Save** → **Build skill**. (See Step 10b.) |
+| **Echo: "I don't know how to help you with that"** when you say "Alexa, open …" | Either (a) the skill's **Test toggle is "Off"** in the developer console (set to **Development**), or (b) the **invocation name** can't be transcribed by Alexa's speech recognition. Check the Alexa **voice history** (alexa.amazon.com → Activity → Voice history) to see what Alexa thought you said, and pick a multi-word invocation name that matches the transcription. |
 | **Echo: "I could not reach your audiobookshelf server"** | API key is wrong, expired, or disabled. Re-create in audiobookshelf and update `ABS_API_KEY` in Lambda env. |
-| **First playback request times out, second works** | Lambda cold start + slow upstream call; pre-warm with a quick `öffne meine hörbücher` first, then issue the `mache weiter`. Already mitigated by the 10 s timeout from Step 8. |
-| **Skill responds in English when you spoke German** | The skill builder language is set to en-US. Add the de-DE locale in the skill builder, or switch your skill's primary locale. Make sure your Echo's language is also Deutsch (Deutschland) under **Alexa app → Geräte → \<Echo\> → Sprache**. |
-| **Skill is not on your Echo at all** | The Echo and the developer console must use the **same Amazon account**. Check **Alexa app → Mehr → Fertigkeiten und Spiele → Deine Fertigkeiten → Dev** — the skill should appear there. If it doesn't, you used different accounts. |
+| **First playback request times out, second works** | Lambda cold start + slow upstream call; pre-warm with a quick `open my audiobooks` first, then issue the `continue`. Already mitigated by the 10 s timeout from Step 8. |
+| **Skill responds in the wrong language** | The skill builder language doesn't match your Echo. Add the missing locale in the skill builder, or switch your skill's primary locale. Make sure your Echo's language matches under **Alexa app → Devices → \<Echo\> → Language**. |
+| **Skill is not on your Echo at all** | The Echo and the developer console must use the **same Amazon account**. Check **Alexa app → More → Skills & Games → Your Skills → Dev** — the skill should appear there. If it doesn't, you used different accounts. |
 | **`Lambda timeout` in CloudWatch logs** | Default Lambda timeout is 3 seconds; bump it to 10 s (Configuration → General configuration → Edit). |
 | **`index.handler is undefined`** | The ZIP was built from the wrong directory. Re-run the `zip` command **from inside `lambda/`**, not from the repo root — `index.js` must be at the **root** of the ZIP. |
 | **Audio plays for a few seconds, then stops** | Either Cloudflare/your reverse proxy doesn't support HTTP **range requests**, or the file isn't a format Alexa can stream (it must be MP3/AAC/M4A/OGG and served with a matching `Content-Type`). Test with `curl -I -H "Range: bytes=0-1023" "<stream-url>"` — you should get `206 Partial Content`. |
-| **Wrong book is played, or `spiele <titel>` says "couldn't find"** | Check what Alexa actually heard in your [voice history](https://www.amazon.de/alexaprivacy/apd/rvh) — Alexa's German speech recognition often (a) drops umlauts, (b) mashes hyphenated words together (`kanguruchroniken` for `Känguru-Chroniken`), or (c) anglicizes endings (`kangaroochronicles`). The skill's fuzzy fallback handles all three; if it still misses, say the most distinctive word alone (`spiele Chroniken`). For a book whose title is very generic, set up a more specific phrase by editing the audiobookshelf metadata or rename the file. |
-| **`Alexa, stop` doesn't stop a Sonos device** | Known limitation of Sonos's third-party Alexa integration — see "Voice-command cheat sheet" above. Use the Sonos app or the touch controls. |
-| **`Alexa, nächstes Kapitel` doesn't work, but `Alexa, weiter` does** | Expected. While AudioPlayer is playing, only built-in intents (NextIntent, PauseIntent, …) reach the skill. Use the short `weiter` / `zurück` forms — they map to the same chapter-skip handler. |
+| **Wrong book is played, or `play <title>` says "couldn't find"** | Check what Alexa actually heard in your [voice history](https://www.amazon.com/alexa-privacy/apd/rvh) — Alexa often (a) drops umlauts, (b) mashes hyphenated words together, or (c) anglicizes endings. The skill's fuzzy fallback handles these; if it still misses, say the most distinctive word alone. For a book whose title is very generic, set up a more specific phrase by editing the audiobookshelf metadata or rename the file. |
+| **`Alexa, next chapter` doesn't work, but `Alexa, next` does** | Expected. While AudioPlayer is playing, only built-in intents (NextIntent, PauseIntent, …) reach the skill. Use the short `next` / `previous` forms — they map to the same chapter-skip handler. |
 
 CloudWatch is your friend. In the Lambda function page → **Monitor** →
-**Logs anzeigen in CloudWatch** / **View logs in CloudWatch**, click
-the most recent log stream to see `console.error` and `console.log`
-output from the handler. The `AudioPlayer event:` lines tell you
-which AudioPlayer events the Echo sent back and any error code.
+**View logs in CloudWatch**, click the most recent log stream to see
+`console.error` and `console.log` output from the handler. The
+`AudioPlayer event:` lines tell you which AudioPlayer events the Echo
+sent back and any error code.
 
 ### Re-deploying after code changes
 
@@ -464,12 +462,11 @@ Compress-Archive -Path (Join-Path $temp "*") -DestinationPath "audiobookshelf-al
 Remove-Item $temp -Recurse -Force
 ```
 
-Upload the new ZIP via Lambda → Code → **Hochladen von** / **Upload
-from** → **.zip-Datei** / **.zip file**. The Alexa skill model only
-needs re-uploading if you changed `skill-package/`. After an
-interaction-model change, click **Build Model** in the skill builder
-— and remember to also rebuild after changing **Interfaces** or the
-invocation name.
+Upload the new ZIP via Lambda → Code → **Upload from** → **.zip
+file**. The Alexa skill model only needs re-uploading if you changed
+`skill-package/`. After an interaction-model change, click **Build
+Model** in the skill builder — and remember to also rebuild after
+changing **Interfaces** or the invocation name.
 
 If you change the AudioPlayer token shape (`lib/playback.js`), expect
 already-running playback sessions to fail until they restart — older
@@ -533,7 +530,7 @@ c.listLibraries().then((r) => console.log(JSON.stringify(r, null, 2)));
 ## Voice-command cheat sheet
 
 Alexa treats commands differently depending on whether your skill
-is in an **active session** (you just said "öffne meine hörbücher"
+is in an **active session** (you just said "open my audiobooks"
 and Alexa is listening for follow-ups) or **AudioPlayer mode** (a
 book is playing). During AudioPlayer mode only built-in intents
 get routed to the skill without an explicit invocation — custom
@@ -541,23 +538,23 @@ phrases need the skill name.
 
 | What you want | Active session | AudioPlayer mode (book playing) |
 |---|---|---|
-| Start a book | `spiele <titel>` | `Alexa, sage meine hörbücher spiele <titel>` |
-| Continue last book | `mache weiter` | not applicable (already playing) |
+| Start a book | `play <title>` | `Alexa, ask my audiobooks to play <title>` |
+| Continue last book | `continue` | not applicable (already playing) |
 | Pause | `pause` | `Alexa, pause` |
-| Stop | `stop` | `Alexa, stop` (Echo) — Sonos: use the app/touch buttons |
-| Next chapter | `nächstes kapitel` / `weiter` | **`Alexa, weiter`** or `Alexa, nächstes` (built-in) |
-| Previous chapter | `voriges kapitel` / `zurück` | **`Alexa, zurück`** (built-in) |
-| Skip ±N seconds/minutes | `spring 30 sekunden vor` | `Alexa, sage meine hörbücher spring 30 sekunden vor` |
-| Sleep timer | `stelle den sleep timer auf 20 minuten` | `Alexa, sage meine hörbücher sleep timer 20 minuten` |
-| What's playing | `welche bücher höre ich gerade` | use Alexa app or pause first |
+| Stop | `stop` | `Alexa, stop` |
+| Next chapter | `next chapter` / `next` | **`Alexa, next`** (built-in) |
+| Previous chapter | `previous chapter` / `previous` | **`Alexa, previous`** (built-in) |
+| Skip ±N seconds/minutes | `skip 30 seconds forward` | `Alexa, ask my audiobooks to skip 30 seconds forward` |
+| Sleep timer | `set a sleep timer for 20 minutes` | `Alexa, ask my audiobooks sleep timer 20 minutes` |
+| What's playing | `what am I listening to` | use Alexa app or pause first |
 
-> **Why "nächstes Kapitel" doesn't work bare while a book is playing.**
+> **Why "next chapter" doesn't work bare while a book is playing.**
 > Alexa Skills Kit only forwards a fixed list of built-in intents
 > (`AMAZON.NextIntent`, `AMAZON.PreviousIntent`, `AMAZON.PauseIntent`,
 > `AMAZON.StopIntent`, `AMAZON.ResumeIntent`, …) to the skill during
 > AudioPlayer playback. Custom intents like `NextChapterIntent` only
 > match when the skill is explicitly invoked. The good news: the
-> built-in `Alexa, weiter` already does the chapter jump, because the
+> built-in `Alexa, next` already does the chapter jump, because the
 > skill maps `AMAZON.NextIntent` to the same handler as
 > `NextChapterIntent`.
 
@@ -566,23 +563,15 @@ phrases need the skill name.
 - **Personal use only.** There is no account linking; the same
   `ABS_API_KEY` is used for every invocation. Don't publish this skill
   on the public Alexa store as-is.
-- **Sonos and other third-party Alexa devices** (Sonos Beam, Bose,
-  etc.) implement Alexa's AudioPlayer differently — they pipe the
-  stream into their own audio engine. As a result, voice commands
-  during playback (`stop`, `weiter`, …) often don't reach the skill
-  on these devices. Use the Sonos app, the touch controls, or
-  Sonos Voice Control instead. Native Echo devices (Echo Dot, Echo
-  Show, Echo Studio, …) work fully.
 - **Search is best-effort.** The skill first tries audiobookshelf's
   server-side search with several query variants (raw, dehyphenated,
   article-stripped, longest-keyword) and falls back to a local
   fuzzy match (3-gram score with substring bonus, umlaut/punctuation
   normalization) over the entire library if that fails. This catches
-  Alexa's habit of mashing words together (`kanguruchroniken` →
-  `Känguru-Chroniken`) and English-y endings (`kangaroochronicles`). If you
-  have hundreds of books with very similar titles, the top result
+  Alexa's habit of mashing words together and English-y endings. If
+  you have hundreds of books with very similar titles, the top result
   might still be wrong; in that case prefer the most distinctive
-  word from the title (`spiele Känguru-Chroniken`).
+  word from the title.
 - **Sleep timer overshoot** — the deadline is enforced at AudioPlayer
   event boundaries. Playback stops at the end of whichever track is
   nearly-finished after the deadline. For an audiobook with 30-minute
@@ -591,8 +580,8 @@ phrases need the skill name.
 - **Progress sync** sends a heartbeat on AudioPlayer events; sub-second
   accuracy relative to the audiobookshelf web player is not guaranteed.
 - **Continue picks the newest in-progress book** when no title is
-  given. With many in-progress books, prefer
-  `Mache mit <Titel> weiter` / `continue <title>` for predictability.
+  given. With many in-progress books, prefer `continue <title>` for
+  predictability.
 
 ## Audiobookshelf API references
 
@@ -601,3 +590,581 @@ phrases need the skill name.
 - API keys guide: <https://www.audiobookshelf.org/guides/api-keys/>
 - Current API source of truth: the audiobookshelf server source itself
   at <https://github.com/advplyr/audiobookshelf>.
+
+---
+
+# Deutsche Anleitung
+
+Ein Alexa-Skill für den Privatgebrauch, der Hörbücher von einer
+selbst gehosteten [audiobookshelf](https://www.audiobookshelf.org/)-
+Instanz streamt.
+
+Er läuft auf AWS Lambda (Node.js 22) und nutzt Alexas
+`AudioPlayer`-Schnittstelle, um Tracks direkt vom audiobookshelf-Server
+zu streamen. Der Wiedergabefortschritt wird zurück an audiobookshelf
+synchronisiert, sodass alles mit der Web-/Mobile-App in Sync bleibt.
+
+## Funktionen
+
+Der Standard-**Aufrufname** ist `meine hörbücher` (Deutsch) und
+`my audiobooks` (Englisch) — änderbar in
+`skill-package/interactionModels/custom/*.json`. Wähle eine
+mehrwortige Phrase, die Alexas Spracherkennung sauber transkribieren
+kann (einzelne englische Wörter wie "audiobookshelf" funktionieren im
+deutschen Sprachmodus nicht).
+
+- **Starten** — `Alexa, öffne meine hörbücher`.
+- **Spielen nach Titel** — `Spiele <Titel>`. Durchsucht die
+  Bibliothek, nimmt den besten Treffer und setzt am gespeicherten
+  Fortschritt fort, falls das Buch schon begonnen wurde.
+- **Weitermachen** — `Mache weiter` setzt das zuletzt gespielte
+  laufende Hörbuch fort. `Mache mit <Titel> weiter` setzt ein
+  bestimmtes fort.
+- **Liste laufender Bücher** — `Welche Bücher höre ich gerade?` listet
+  die fünf neuesten.
+- **Kapitelnavigation** — `Nächstes Kapitel` springt zum nächsten;
+  `voriges Kapitel` zum vorherigen. Nutzt audiobookshelfs
+  `media.chapters[]`, nicht Dateigrenzen.
+- **Zeitsprung** — `Spring 30 Sekunden zurück`,
+  `Spring 5 Minuten vor`.
+- **Sleep Timer** — `Stelle den Sleep Timer auf 30 Minuten`.
+  Beenden mit `Sleep Timer aus`. Das Ablaufdatum steckt im
+  AudioPlayer-Token; die Wiedergabe stoppt am Ende des nächsten Tracks,
+  der nach Ablauf endet (also bis zu eine Tracklänge Überlauf — kein
+  externer Scheduler nötig).
+- **Listen** — `Liste meine Bibliotheken`, `Was ist neu?` für zuletzt
+  hinzugefügte Bücher.
+- **Standard-Steuerung** — `pause`, `weiter`, `stop`. Hardware-
+  Next/Previous-Tasten (`PlaybackController.*`) springen Kapitel.
+- **de-DE und en-US.**
+
+## Voraussetzungen
+
+1. Eine audiobookshelf-Instanz, die aus dem öffentlichen Internet
+   über **HTTPS** mit gültigem Zertifikat erreichbar ist. Alexas
+   AudioPlayer holt Stream-URLs direkt vom Server, kann also nicht im
+   privaten LAN sein.
+2. Ein audiobookshelf-**API-Key**: in der Web-UI unter *Settings →
+   Users → API Keys* erstellen und das einmalig angezeigte JWT
+   kopieren.
+3. Ein [Amazon-Developer-Konto](https://developer.amazon.com/alexa)
+   und ein AWS-Konto.
+4. Entweder die [ASK CLI](https://developer.amazon.com/en-US/docs/alexa/smapi/quick-start-alexa-skills-kit-command-line-interface.html)
+   (`npm i -g ask-cli`) oder die Bereitschaft, Dateien manuell in die
+   Developer Console zu kopieren und die Lambda per Hand zu zippen.
+
+## Schritt-für-Schritt-Installation (für Einsteiger)
+
+Diese Anleitung führt dich von "audiobookshelf läuft zuhause" zu
+"Alexa spielt meine Hörbücher", auch wenn du AWS oder die Alexa
+Developer Console noch nie benutzt hast. Plane beim ersten Mal etwa
+**60–90 Minuten** ein. Der AWS Free Tier deckt einen privaten Skill
+ab — du solltest 0 €/Monat zahlen, sofern du nicht woanders etwas
+anlegst.
+
+Du legst unterwegs Konten bei drei Diensten an: ein Amazon-Developer-
+Konto (Alexa-Skills), ein AWS-Konto (Lambda-Hosting) und — falls du
+noch kein öffentliches HTTPS hast — eventuell Cloudflare (gratis
+Tunnel). Verwende für Amazon und Alexa **dieselbe E-Mail-Adresse**;
+Echo-Geräte sind ans Amazon-Konto gebunden.
+
+### Schritt 1 — audiobookshelf per HTTPS aus dem Internet erreichbar machen
+
+Alexa läuft in Amazons Cloud und lädt jeden Track direkt von deinem
+audiobookshelf-Server. Das heißt, dein Server muss aus dem öffentlichen
+Internet unter einer `https://...`-URL mit gültigem TLS-Zertifikat
+erreichbar sein (selbstsignierte Zertifikate funktionieren **nicht**).
+Schnell muss er nicht sein — Alexa puffert — aber erreichbar.
+
+Wenn dein audiobookshelf bereits unter z. B.
+`https://abs.deinedomain.de` läuft, springe zu Schritt 2. Sonst wähle
+eine der folgenden Optionen:
+
+**Option A — Cloudflare Tunnel (empfohlen für Einsteiger).** Gratis,
+keine Portweiterleitung, automatisches HTTPS. Benötigt eine eigene
+Domain (jeder Registrar geht; günstig ab ~10 €/Jahr). Anleitung:
+<https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/>.
+Nach Setup hast du z. B.
+`https://abs.deinedomain.de → http://localhost:13378` (oder
+welcher Port intern läuft).
+
+**Option B — Reverse Proxy mit Let's Encrypt.** Nginx/Caddy/Traefik
+vor audiobookshelf, mit echter Domain auf deine Heim-IP (plus Port-
+Forwarding 443→Reverse Proxy am Router). Mehr bewegliche Teile als
+Option A, und du brauchst Dynamic DNS, falls deine ISP keine statische
+IP gibt.
+
+**Option C — VPS vor audiobookshelf.** 5-€/Monat-VPS (Hetzner,
+DigitalOcean, …) mit Reverse Proxy mieten und per Tailscale oder
+WireGuard mit dem Heimserver verbinden. Am simpelsten, wenn das
+Heimnetz nicht mitspielt.
+
+**Test:** Von einem Gerät außerhalb deines Heimnetzes
+`https://deine-abs-url/ping` im Browser öffnen. Du solltest `pong`
+(oder ähnliches) sehen. Bei Zertifikatswarnung erst die fixen, bevor
+du weitermachst — Alexa lehnt nicht vertrauenswürdige Zertifikate ab.
+
+> **Sicherheitshinweis.** Sobald audiobookshelf öffentlich erreichbar
+> ist, kommt jeder, der die URL errät, an die Login-Seite. Sorge für
+> starke Passwörter pro Benutzer. Der Skill nutzt einen API-Key
+> (nächster Schritt), kein Passwort — Keys lassen sich sofort
+> widerrufen, ohne das Passwort zu ändern.
+
+### Schritt 2 — audiobookshelf-API-Key anlegen
+
+1. Als **Admin** in der audiobookshelf-Web-UI einloggen.
+2. Benutzername (oben rechts) → **Settings**.
+3. **Users** öffnen, dein Benutzer anklicken, dann Tab **API Keys**.
+4. **Create API Key**:
+   - Name: `Alexa` (oder etwas Wiedererkennbares)
+   - User: dein eigener Benutzer
+   - Expiration: leer lassen für "nie" (du kannst jederzeit widerrufen)
+   - Sicherstellen, dass er **enabled** ist
+5. **Create** klicken. Der Key erscheint **einmalig** — sofort
+   kopieren und in den Passwort-Manager. Sieht aus wie ein langer
+   `eyJhbGc...`-String.
+
+Den fügst du in Schritt 7 in AWS ein.
+
+### Schritt 3 — Node.js installieren
+
+Du brauchst Node.js, um die Skill-Abhängigkeiten zu installieren.
+**Node.js 20 oder neuer** (LTS empfohlen) von <https://nodejs.org/>.
+Jede Version ab 20.x funktioniert lokal (Lambda läuft ohnehin auf
+einer fix gepinnten Runtime). Im Terminal prüfen:
+
+```bash
+node --version    # sollte v20.x.y oder höher zeigen
+npm --version     # sollte 10.x.y oder ähnlich zeigen
+```
+
+### Schritt 4 — Repo klonen
+
+```bash
+git clone https://github.com/<dein-fork-oder-dieses-repo>/audiobookshelf-alexa.git
+cd audiobookshelf-alexa
+cd lambda
+npm install
+npm test    # sollte "39 pass" zeigen — beweist, dass der Code lokal läuft
+cd ..
+```
+
+Wenn `npm test` fehlschlägt, das erst fixen — keinen kaputten Code
+deployen.
+
+### Schritt 5 — AWS-Konto anlegen (falls noch keins)
+
+1. Auf <https://aws.amazon.com/free/> auf **Create a Free Account**.
+   Eine Kreditkarte wird zur Verifikation benötigt; AWS belastet im
+   Free Tier nichts.
+2. Region wählen, in der alles laufen soll. **`us-east-1` (N. Virginia)**
+   ist die richtige Wahl für englische und deutsche Skills — Alexa
+   Skills Kit ist für diese Locales an die Region gebunden. Bleibe
+   überall bei `us-east-1`.
+3. Sobald das Konto aktiv ist, in der **AWS Console**
+   <https://console.aws.amazon.com/> einloggen.
+
+> **Kostenerwartung.** Ein privater Skill macht ein paar hundert
+> Lambda-Requests pro Monat. Der AWS Free Tier deckt 1.000.000
+> Lambda-Requests/Monat dauerhaft ab. Du solltest 0 € sehen. Stelle
+> für die Nachtruhe einen
+> [Billing-Alarm](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/monitor_estimated_charges_with_cloudwatch.html)
+> bei 1 € ein.
+
+### Schritt 6 — Lambda-Funktion erstellen
+
+1. In der AWS Console oben rechts auf Region **N. Virginia
+   (us-east-1)** wechseln.
+2. Oben **Lambda** suchen und öffnen.
+3. **Create function** klicken.
+4. **Author from scratch** wählen.
+5. Ausfüllen:
+   - **Function name:** `audiobookshelf-alexa`
+   - **Runtime:** `Node.js 22.x` (aktuelles LTS; `Node.js 20.x` geht
+     auch, falls noch verfügbar)
+   - **Architecture:** `x86_64` (Standard)
+   - **Permissions:** "Create a new role with basic Lambda
+     permissions" lassen
+6. **Create function**.
+
+Eine Minute warten — du landest auf der Übersicht der Funktion.
+
+### Schritt 7 — Lambda-Code als ZIP hochladen
+
+Auf dem Rechner (macOS / Linux / WSL / Git Bash):
+
+```bash
+cd lambda
+npm install                # falls noch nicht geschehen
+zip -r ../audiobookshelf-alexa.zip . -x "test/*"
+cd ..
+```
+
+Auf Windows PowerShell (kein `zip` von Haus aus):
+
+```powershell
+$src = "lambda"
+$dst = "audiobookshelf-alexa.zip"
+$temp = Join-Path $env:TEMP "abs-alexa-pkg"
+if (Test-Path $dst) { Remove-Item $dst -Force }
+if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+New-Item -ItemType Directory -Path $temp | Out-Null
+Get-ChildItem -Path $src -Exclude "test" | Copy-Item -Destination $temp -Recurse -Force
+Compress-Archive -Path (Join-Path $temp "*") -DestinationPath $dst -Force
+Remove-Item $temp -Recurse -Force
+```
+
+So oder so liegt am Ende `audiobookshelf-alexa.zip` neben dem
+`lambda/`-Ordner und enthält `index.js`, `lib/`, `node_modules/`
+und `package.json` (ca. 200–300 KB).
+
+In der AWS Console auf der Lambda-Seite:
+
+1. Zum Bereich **Code** scrollen.
+2. **Upload from** → **.zip file** → **Upload**.
+3. `audiobookshelf-alexa.zip` auswählen. Upload abwarten (wenige
+   Sekunden bei ~5 MB).
+4. Nach dem Laden sollte `index.js` im Editor sichtbar sein.
+
+Der **Handler** muss auf `index.handler` stehen:
+
+1. Zum Bereich **Runtime settings** scrollen, **Edit**.
+2. **Handler** auf `index.handler` setzen (Standard; bitte prüfen).
+3. Speichern.
+
+### Schritt 8 — Umgebungsvariablen setzen
+
+Weiter auf der Lambda-Seite:
+
+1. Tab **Configuration**.
+2. Links **Environment variables**.
+3. **Edit** → zweimal **Add environment variable**:
+   - `ABS_BASE_URL` = audiobookshelf-URL, **ohne abschließenden Slash**
+     (z. B. `https://abs.deinedomain.de`)
+   - `ABS_API_KEY` = der in Schritt 2 kopierte API-Key
+4. Optional eine dritte, falls du mehrere Bibliotheken hast und eine
+   festlegen willst:
+   - `ABS_DEFAULT_LIBRARY_ID` = die Bibliotheks-ID (in der
+     audiobookshelf-URL beim Browsen einer Bibliothek sichtbar)
+5. **Save**.
+
+Im Tab **Configuration** auch das Funktions-Timeout erhöhen — die
+Standard-3-Sekunden sind für einen kalten Lambda-Aufruf gegen
+audiobookshelf zu knapp:
+
+1. **Configuration → General configuration → Edit**.
+2. **Timeout** auf `0 min 10 sec` (10 Sekunden).
+3. **Save**.
+
+### Schritt 9 — Alexa-Skills-Kit-Trigger hinzufügen
+
+Das verbindet Alexa mit Lambda; die Gegenrichtung (Alexa-Skill →
+Lambda-ARN) folgt in Schritt 11.
+
+1. Auf der Lambda-Seite Tab **Configuration**.
+2. **Triggers** → **Add trigger**.
+3. **Alexa Skills Kit** wählen.
+4. Skill ID verification: vorerst **Disable** — du hast noch keine
+   Skill-ID. Nach Schritt 10 hier nochmal rein und eintragen.
+5. **Add**.
+
+Jetzt den **Function ARN** kopieren — steht oben auf der Lambda-Seite,
+sieht aus wie
+`arn:aws:lambda:us-east-1:123456789012:function:audiobookshelf-alexa`.
+Den fügst du in Schritt 11 ein.
+
+### Schritt 10 — Alexa-Skill anlegen
+
+1. Auf <https://developer.amazon.com/alexa/console/ask> einloggen,
+   mit demselben Amazon-Konto wie dein Echo. Developer-Vereinbarung
+   ggf. annehmen.
+2. **Create Skill**.
+3. **Skill name:** `Audiobookshelf` (oder beliebig — das ist nicht
+   der Aufrufname).
+4. **Primary locale:** German (DE), wenn du hauptsächlich Deutsch
+   sprichst; English (US) sonst. Der andere Locale lässt sich später
+   ergänzen.
+5. **Experience type:** **Other → Custom**.
+6. **Hosting:** **Provision your own** (Lambda hast du schon).
+7. **Template:** **Start from scratch**.
+8. **Create skill** → kurz warten.
+
+Du landest im Skill Builder. Jetzt das Interaction Model hochladen:
+
+1. Links **JSON Editor** unter **Interaction Model**.
+2. `skill-package/interactionModels/custom/de-DE.json` (oder
+   `en-US.json`) lokal im Editor öffnen, gesamten Inhalt kopieren und
+   in den JSON Editor einfügen, vorhandenen Inhalt überschreiben.
+   (Drag-and-Drop der Datei geht auch.)
+3. **Save Model** (oben).
+4. **Build Model** (auch oben). ~30 Sekunden auf den grünen Haken
+   warten.
+5. Für beide Locales: oben rechts Sprachwähler → anderen Locale
+   hinzufügen, wiederholen.
+
+> **Zum Aufrufnamen.** Das ausgelieferte `de-DE.json` nutzt
+> `meine hörbücher` als Aufrufnamen. Das ist Absicht — Alexas
+> deutsche Spracherkennung transkribiert "audiobookshelf" als drei
+> Wörter ("audio book shelf") und matcht keinen Ein-Wort-Aufruf.
+> Mehrwortige deutsche Phrasen bestehen außerdem die Zertifizierung,
+> da Amazon Ein-Wort-Aufrufnamen für Nicht-Marken-Skills verbietet.
+> Wenn du das `invocationName`-Feld änderst, bleib bei zwei oder
+> mehr alltäglichen Wörtern.
+
+### Schritt 10b — AudioPlayer-Schnittstelle aktivieren (PFLICHT)
+
+Diesen Schritt vergisst man leicht, **ohne ihn spielt der Skill keinen
+Ton.** Ohne aktivierten AudioPlayer antwortet Echo mit *"Bei der
+Antwort des angeforderten Skill ist ein Problem aufgetreten"*, sobald
+du ein Buch abspielen willst.
+
+1. Im Skill Builder links **Interfaces** (unter **Build**).
+2. Zeile **Audio Player** auf **ON**.
+3. **Save** (oben).
+4. **Build skill** (oben rechts), grünen Haken abwarten — nach jeder
+   Änderung an Interfaces, Modell oder Aufrufnamen neu bauen.
+
+### Schritt 11 — Skill mit Lambda verdrahten
+
+Weiter im Skill Builder:
+
+1. Links **Endpoint**.
+2. **AWS Lambda ARN** wählen.
+3. **Default Region:** den Lambda-Function-ARN aus Schritt 9 einfügen.
+4. (Andere Regionen ignorieren, außer du willst Failover.)
+5. **Save Endpoints**. Die Console zeigt eine **Skill ID** — kopieren.
+
+Zurück in AWS Console → Lambda → deine Funktion → Configuration →
+Triggers, den Alexa-Skills-Kit-Trigger **bearbeiten**:
+
+1. **Skill ID verification** von Disable auf **Enable**.
+2. Skill ID einfügen.
+3. Speichern.
+
+Damit kann niemand, der zufällig deinen Lambda-ARN kennt, die Funktion
+aufrufen.
+
+### Schritt 12 — Test aktivieren und ausprobieren
+
+1. Im Skill Builder oben Tab **Build** → **Build Model**, falls noch
+   nicht. Grünen Haken abwarten.
+2. Tab **Test**. Den Schalter oben von **"Off"** auf **"Development"**
+   stellen. **Pflicht — sonst sieht dein Echo den Skill nicht.**
+3. Im Test-Simulator links eintippen:
+   `öffne meine hörbücher`.
+4. Du solltest die Begrüßung hören/sehen.
+5. `mache weiter` versuchen — Lambda liefert eine
+   `AudioPlayer.Play`-Direktive im JSON-Output.
+
+> **Der Simulator kann keinen Ton.** Wenn Lambda eine
+> `AudioPlayer.Play`-Direktive liefert, zeigt der Test-Simulator
+> *"Bei der Antwort des angeforderten Skill ist ein Problem
+> aufgetreten"*. Das ist die Limitierung des Simulators, **kein
+> echter Fehler**. Im JSON-Output prüfen — wenn dort eine
+> wohlgeformte `AudioPlayer.Play`-Direktive mit Stream-URL steht,
+> funktioniert der Skill und ein echter Echo spielt das Audio.
+
+Für echte Wiedergabe: mit einem **echten Echo am gleichen Amazon-
+Konto** wie deine Developer Console sprechen:
+
+```
+"Alexa, öffne meine hörbücher"
+"mache weiter"
+"Alexa, sage meine hörbücher spiele <buchtitel>"
+```
+
+Skills im Development-Modus sind auf eigenen Echos automatisch aktiv —
+keine Veröffentlichung, keine "Installation" in der Alexa-App nötig.
+
+> **Erster Aufruf ist langsam.** Cold Start einer ungenutzten Lambda
+> plus Round-Trip zu audiobookshelf dauert beim ersten Mal nach
+> langer Pause 4–6 Sekunden. Folgeaufrufe sind meist unter 1 Sekunde.
+> Wenn der allererste Versuch in einen Timeout läuft (Alexa: "Es
+> liegt ein Problem vor"), 10 Sekunden warten und nochmal — dann ist
+> die Lambda warm.
+
+### Fehlersuche
+
+| Symptom | Wahrscheinliche Ursache / Fix |
+|---|---|
+| **Echo: "Bei der Antwort des angeforderten Skill ist ein Problem aufgetreten"** — der Skill öffnet sauber, scheitert nur an `mache weiter` / `spiele …` | Die **AudioPlayer-Schnittstelle ist nicht aktiviert**. Skill Builder → **Interfaces** → **Audio Player** ON → **Save** → **Build skill**. (Siehe Schritt 10b.) |
+| **Echo: "Ich weiß nicht, wie ich dir dabei helfen kann"** bei "Alexa, öffne …" | Entweder (a) der **Test-Schalter** im Developer-Konsole steht auf **"Off"** (auf **Development** stellen), oder (b) der **Aufrufname** wird nicht sauber transkribiert. Im Alexa-**Sprachverlauf** (alexa.amazon.de → Aktivität → Sprachverlauf) ansehen, was Alexa verstanden hat, und einen mehrwortigen Aufrufnamen wählen, der zur Transkription passt. |
+| **Echo: "I could not reach your audiobookshelf server"** | API-Key falsch, abgelaufen oder deaktiviert. In audiobookshelf neu erstellen und `ABS_API_KEY` im Lambda-Env aktualisieren. |
+| **Erste Wiedergabe-Anfrage läuft in Timeout, zweite klappt** | Lambda Cold Start plus langsamer Upstream; mit kurzem `öffne meine hörbücher` vorwärmen, dann `mache weiter`. Durch das 10-s-Timeout aus Schritt 8 schon abgemildert. |
+| **Skill antwortet auf Englisch, obwohl du Deutsch gesprochen hast** | Skill-Builder-Sprache ist en-US. de-DE-Locale im Skill Builder ergänzen oder Primärsprache umstellen. Echo-Sprache muss ebenfalls Deutsch (Deutschland) unter **Alexa-App → Geräte → \<Echo\> → Sprache** sein. |
+| **Skill ist gar nicht auf deinem Echo** | Echo und Developer Console müssen am **selben Amazon-Konto** hängen. Unter **Alexa-App → Mehr → Fertigkeiten und Spiele → Deine Fertigkeiten → Dev** nachsehen — der Skill sollte dort erscheinen. Sonst hast du verschiedene Konten benutzt. |
+| **`Lambda timeout` in den CloudWatch-Logs** | Default-Timeout 3 Sekunden; auf 10 s erhöhen (Configuration → General configuration → Edit). |
+| **`index.handler is undefined`** | ZIP wurde aus dem falschen Verzeichnis gebaut. `zip` **innerhalb von `lambda/`** ausführen, nicht aus dem Repo-Root — `index.js` muss im **Wurzelverzeichnis** der ZIP liegen. |
+| **Audio spielt ein paar Sekunden, dann Stopp** | Entweder Cloudflare/Reverse Proxy unterstützt keine HTTP-**Range-Requests**, oder die Datei ist kein für Alexa streambares Format (muss MP3/AAC/M4A/OGG mit passendem `Content-Type` sein). Mit `curl -I -H "Range: bytes=0-1023" "<stream-url>"` testen — du solltest `206 Partial Content` bekommen. |
+| **Falsches Buch wird gespielt, oder `spiele <titel>` sagt "konnte nicht finden"** | Im [Sprachverlauf](https://www.amazon.de/alexaprivacy/apd/rvh) nachsehen, was Alexa wirklich verstanden hat — Alexas deutsche Spracherkennung (a) lässt Umlaute weg, (b) verschmilzt Bindestrichworte (`kanguruchroniken` für `Känguru-Chroniken`), (c) verenglisch Endungen (`kangaroochronicles`). Der Fuzzy-Fallback fängt alle drei; falls es trotzdem danebenliegt, das markanteste Wort allein nennen (`spiele Chroniken`). Bei sehr generischem Titel die audiobookshelf-Metadaten oder den Dateinamen anpassen. |
+| **`Alexa, nächstes Kapitel` geht nicht, aber `Alexa, weiter` schon** | Erwartet. Während AudioPlayer läuft, erreichen den Skill nur Built-in-Intents (NextIntent, PauseIntent, …). Die kurzen `weiter` / `zurück` benutzen — sie mappen auf denselben Kapitel-Skip-Handler. |
+
+CloudWatch ist dein Freund. Auf der Lambda-Seite → **Monitor** →
+**Logs anzeigen in CloudWatch** das jüngste Log-Stream öffnen, um
+`console.error` und `console.log` aus dem Handler zu sehen. Die
+`AudioPlayer event:`-Zeilen zeigen, welche AudioPlayer-Events Echo
+zurückgesendet hat und ggf. den Fehlercode.
+
+### Neu deployen nach Code-Änderungen
+
+Nach Änderungen in `lambda/` (Bash / WSL / Git Bash):
+
+```bash
+cd lambda
+npm install        # nur falls package.json geändert
+npm test           # immer, vor dem Deployen
+zip -r ../audiobookshelf-alexa.zip . -x "test/*"
+cd ..
+```
+
+PowerShell-Äquivalent (Windows):
+
+```powershell
+Push-Location lambda
+npm install        # nur falls package.json geändert
+npm test           # immer, vor dem Deployen
+Pop-Location
+$temp = Join-Path $env:TEMP "abs-alexa-pkg"
+if (Test-Path "audiobookshelf-alexa.zip") { Remove-Item "audiobookshelf-alexa.zip" -Force }
+if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+New-Item -ItemType Directory -Path $temp | Out-Null
+Get-ChildItem -Path "lambda" -Exclude "test" | Copy-Item -Destination $temp -Recurse -Force
+Compress-Archive -Path (Join-Path $temp "*") -DestinationPath "audiobookshelf-alexa.zip" -Force
+Remove-Item $temp -Recurse -Force
+```
+
+Neue ZIP über Lambda → Code → **Hochladen von** → **.zip-Datei**
+einspielen. Das Alexa-Skill-Modell muss nur neu hochgeladen werden,
+wenn du `skill-package/` geändert hast. Nach Modelländerung im Skill
+Builder **Build Model** klicken — und nach Änderungen an
+**Interfaces** oder Aufrufnamen ebenfalls neu bauen.
+
+Wenn du das AudioPlayer-Token-Format (`lib/playback.js`) änderst,
+schlagen laufende Wiedergabesessions bis zum Neustart fehl — alte
+Tokens dekodieren nicht gegen den neuen Code.
+
+## Power-User-Abkürzung: ASK CLI
+
+Wer auf der Kommandozeile zuhause ist, fasst die Schritte 6–11 mit
+der [ASK CLI](https://developer.amazon.com/en-US/docs/alexa/smapi/quick-start-alexa-skills-kit-command-line-interface.html)
+in einem Befehl zusammen:
+
+```bash
+npm i -g ask-cli
+ask configure       # einmalig browser-basierter AWS- + Alexa-Login
+cd lambda && npm install && cd ..
+ask deploy
+```
+
+`ask deploy` packt `lambda/`, legt die Lambda-Funktion an oder
+aktualisiert sie, lädt das Skill-Manifest und die Interaction Models
+hoch und verdrahtet den Endpoint. `ABS_BASE_URL` und `ABS_API_KEY`
+einmalig auf der Lambda setzen (Lambda-Konsole → Configuration →
+Environment variables, oder `aws lambda update-function-configuration`).
+
+## Entwicklung
+
+```bash
+cd lambda
+npm install
+npm test            # 39 Tests über Helfer, HTTP-Client und Handler
+node --check index.js
+```
+
+### Debuggen ohne Echo
+
+`test/handler.test.js` ruft `exports.handler` direkt mit
+synthetisierten Alexa-Request-Envelopes (Launch, IntentRequest,
+AudioPlayer-Events, PlaybackController) auf. Die audiobookshelf-API
+ist über einen In-Memory-Mock (`test/fixtures/abs-mock.js`) gestubbt,
+der ganze Suite läuft offline.
+
+Das ist der einzige Weg, den **AudioPlayer-Event-Flow** zu testen —
+Developer-Console-Simulator und `ask dialog` feuern keine
+`AudioPlayer.PlaybackStarted` / `PlaybackNearlyFinished` /
+`PlaybackStopped`, sodass Auto-Enqueue und Sleep-Timer-Logik dort
+nicht prüfbar sind. Die Handler-Tests decken diese Events
+end-to-end ab:
+
+```bash
+npm test
+```
+
+Iterationsschleife: `index.js` editieren → `npm test` → fertig.
+
+Für ad-hoc Live-Tests gegen eine echte audiobookshelf-Instanz
+`ABS_BASE_URL` und `ABS_API_KEY` setzen und `lib/absClient.js` direkt
+aufrufen:
+
+```js
+const { fromEnv } = require('./lib/absClient');
+const c = fromEnv();
+c.listLibraries().then((r) => console.log(JSON.stringify(r, null, 2)));
+```
+
+## Sprachbefehl-Spickzettel
+
+Alexa behandelt Befehle unterschiedlich, je nachdem, ob dein Skill in
+einer **aktiven Session** ist (du hast gerade "öffne meine hörbücher"
+gesagt und Alexa wartet auf Folgebefehle) oder im **AudioPlayer-Modus**
+(ein Buch läuft). Im AudioPlayer-Modus erreichen den Skill nur
+Built-in-Intents ohne explizite Anrufung — eigene Phrasen brauchen den
+Skill-Namen.
+
+| Was du willst | Aktive Session | AudioPlayer-Modus (Buch läuft) |
+|---|---|---|
+| Buch starten | `spiele <titel>` | `Alexa, sage meine hörbücher spiele <titel>` |
+| Letztes Buch fortsetzen | `mache weiter` | nicht nötig (läuft schon) |
+| Pause | `pause` | `Alexa, pause` |
+| Stop | `stop` | `Alexa, stop` |
+| Nächstes Kapitel | `nächstes kapitel` / `weiter` | **`Alexa, weiter`** oder `Alexa, nächstes` (Built-in) |
+| Voriges Kapitel | `voriges kapitel` / `zurück` | **`Alexa, zurück`** (Built-in) |
+| ±N Sekunden/Minuten springen | `spring 30 sekunden vor` | `Alexa, sage meine hörbücher spring 30 sekunden vor` |
+| Sleep Timer | `stelle den sleep timer auf 20 minuten` | `Alexa, sage meine hörbücher sleep timer 20 minuten` |
+| Was läuft gerade | `welche bücher höre ich gerade` | Alexa-App nutzen oder vorher pausieren |
+
+> **Warum "nächstes Kapitel" während der Wiedergabe nicht ohne
+> weiteres geht.** Alexa Skills Kit leitet im AudioPlayer-Modus nur
+> eine feste Liste Built-in-Intents (`AMAZON.NextIntent`,
+> `AMAZON.PreviousIntent`, `AMAZON.PauseIntent`, `AMAZON.StopIntent`,
+> `AMAZON.ResumeIntent`, …) an den Skill weiter. Eigene Intents wie
+> `NextChapterIntent` matchen nur bei expliziter Anrufung. Die gute
+> Nachricht: `Alexa, weiter` macht den Kapitelsprung schon, weil der
+> Skill `AMAZON.NextIntent` auf denselben Handler wie
+> `NextChapterIntent` mappt.
+
+## Einschränkungen / bekannte Lücken
+
+- **Nur für Privatgebrauch.** Kein Account-Linking; derselbe
+  `ABS_API_KEY` wird für jede Anfrage verwendet. Diesen Skill nicht
+  unverändert im öffentlichen Alexa-Store veröffentlichen.
+- **Suche ist Best-Effort.** Der Skill probiert zuerst die
+  serverseitige audiobookshelf-Suche mit mehreren Query-Varianten
+  (roh, ohne Bindestriche, ohne Artikel, längstes Schlagwort) und
+  fällt auf einen lokalen Fuzzy-Match zurück (3-Gramm-Score mit
+  Substring-Bonus, Umlaut-/Interpunktion-Normalisierung) über die
+  ganze Bibliothek. Das fängt Alexas Eigenheit, Wörter zu verschmelzen
+  (`kanguruchroniken` → `Känguru-Chroniken`) und Endungen zu
+  verenglischen (`kangaroochronicles`). Bei hunderten Büchern mit
+  sehr ähnlichen Titeln kann der Top-Treffer trotzdem falsch sein —
+  dann das markanteste Wort des Titels nennen
+  (`spiele Känguru-Chroniken`).
+- **Sleep-Timer-Überlauf** — die Deadline greift an
+  AudioPlayer-Event-Grenzen. Die Wiedergabe endet am Ende des Tracks,
+  der nach der Deadline fast fertig ist. Bei 30-Minuten-Dateien kann
+  der Timer bis zu eine Datei überlaufen; bei wenigen Minuten
+  (typisch ein Kapitel pro Datei) ist der Überlauf gering.
+- **Fortschritts-Sync** sendet einen Heartbeat bei AudioPlayer-Events;
+  sub-Sekunden-Genauigkeit gegenüber dem audiobookshelf-Web-Player ist
+  nicht garantiert.
+- **`Mache weiter` nimmt das neueste laufende Buch**, wenn kein Titel
+  genannt ist. Bei vielen offenen Büchern lieber
+  `Mache mit <Titel> weiter` für Vorhersagbarkeit.
+
+## audiobookshelf-API-Referenzen
+
+- API-Referenz (laut Eigenangabe veraltet, aber bester Startpunkt):
+  <https://api.audiobookshelf.org/>
+- API-Keys-Guide: <https://www.audiobookshelf.org/guides/api-keys/>
+- Aktuelle API-Quelle der Wahrheit: der audiobookshelf-Server-Quellcode
+  selbst unter <https://github.com/advplyr/audiobookshelf>.

@@ -22,13 +22,27 @@ function speakerOf(handlerInput) {
   return t(locale);
 }
 
+function deviceIdOf(handlerInput) {
+  const ctx = handlerInput.requestEnvelope && handlerInput.requestEnvelope.context;
+  return (ctx && ctx.System && ctx.System.device && ctx.System.device.deviceId) || null;
+}
+
 function getClient(handlerInput) {
+  const deviceId = deviceIdOf(handlerInput);
   try {
-    return fromEnv(process.env);
+    return fromEnv(process.env, { deviceId });
   } catch (err) {
-    console.error('Audiobookshelf client init failed:', err.message);
+    console.error('Audiobookshelf client init failed:', err.message, 'deviceId:', deviceId);
     const speak = speakerOf(handlerInput);
-    handlerInput.__speech = speak('notConfigured');
+    // ABS_BASE_URL or ABS_API_KEY/ABS_USERS not set at all -> notConfigured.
+    // Both URL set and at least one key source set, but this device wasn't
+    // matched and there is no default -> notMapped.
+    const hasAnyKeySource = !!(process.env.ABS_API_KEY || process.env.ABS_USERS);
+    if (process.env.ABS_BASE_URL && hasAnyKeySource && err.code === 'ABS_NO_KEY') {
+      handlerInput.__speech = speak('notMapped');
+    } else {
+      handlerInput.__speech = speak('notConfigured');
+    }
     return null;
   }
 }
@@ -678,7 +692,9 @@ const AudioPlayerEventHandler = {
     if (!state) return h.responseBuilder.getResponse();
 
     let client = null;
-    try { client = fromEnv(process.env); } catch (_) { /* noop */ }
+    try {
+      client = fromEnv(process.env, { deviceId: deviceIdOf(h) });
+    } catch (_) { /* noop — progress sync is best-effort */ }
 
     const offsetSec = (req.offsetInMilliseconds || 0) / 1000;
     const bookOffset = (state.trackStart || 0) + offsetSec;

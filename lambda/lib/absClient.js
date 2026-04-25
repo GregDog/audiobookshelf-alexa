@@ -115,11 +115,49 @@ class AbsClient {
   }
 }
 
-function fromEnv(env = process.env) {
-  return new AbsClient({
-    baseUrl: env.ABS_BASE_URL,
-    apiKey: env.ABS_API_KEY,
-  });
+// Resolve which audiobookshelf API key to use for a given Alexa device.
+// ABS_USERS (optional) is a JSON object mapping Alexa deviceId -> ABS API key,
+// e.g. {"amzn1.ask.device.kitchen": "key-alice", "amzn1.ask.device.bedroom": "key-bob"}.
+// ABS_API_KEY (optional) is the fallback used when the device is not in the map
+// — it preserves the original single-user behaviour.
+// Returns { apiKey, source: 'mapped'|'default' } or null if no key applies.
+function resolveApiKey(env, deviceId) {
+  let map = null;
+  if (env.ABS_USERS) {
+    try {
+      const parsed = JSON.parse(env.ABS_USERS);
+      if (parsed && typeof parsed === 'object') map = parsed;
+    } catch (err) {
+      console.warn('ABS_USERS is not valid JSON, ignoring:', err.message);
+    }
+  }
+  if (map && deviceId && Object.prototype.hasOwnProperty.call(map, deviceId)) {
+    const entry = map[deviceId];
+    const apiKey = typeof entry === 'string' ? entry : entry && entry.apiKey;
+    if (apiKey) return { apiKey, source: 'mapped' };
+  }
+  if (env.ABS_API_KEY) return { apiKey: env.ABS_API_KEY, source: 'default' };
+  return null;
 }
 
-module.exports = { AbsClient, fromEnv };
+function fromEnv(env = process.env, { deviceId } = {}) {
+  const resolved = resolveApiKey(env, deviceId);
+  if (!resolved) {
+    const err = new Error(
+      deviceId
+        ? `no API key configured for deviceId ${deviceId} (set ABS_USERS or ABS_API_KEY)`
+        : 'no API key configured (set ABS_API_KEY)',
+    );
+    err.code = 'ABS_NO_KEY';
+    err.deviceId = deviceId || null;
+    throw err;
+  }
+  const client = new AbsClient({
+    baseUrl: env.ABS_BASE_URL,
+    apiKey: resolved.apiKey,
+  });
+  client.keySource = resolved.source;
+  return client;
+}
+
+module.exports = { AbsClient, fromEnv, resolveApiKey };

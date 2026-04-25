@@ -167,7 +167,7 @@ git clone https://github.com/<your-fork-or-this-repo>/audiobookshelf-alexa.git
 cd audiobookshelf-alexa
 cd lambda
 npm install
-npm test    # should print "39 pass" — proves the code works on your machine
+npm test    # should print "45 pass" — proves the code works on your machine
 cd ..
 ```
 
@@ -265,12 +265,21 @@ Still on the Lambda function page:
 3. Click **Edit** → **Add environment variable** twice:
    - `ABS_BASE_URL` = your audiobookshelf URL, **no trailing slash**
      (e.g. `https://abs.yourdomain.com`)
-   - `ABS_API_KEY` = the API key you copied in step 2
+   - `ABS_API_KEY` = the API key you copied in step 2. Used as the
+     household default — every Echo hits this audiobookshelf user
+     unless you also configure `ABS_USERS` (see *Multi-user setup*
+     below).
 4. Optionally a third one if you have multiple libraries and want to
    pin one:
    - `ABS_DEFAULT_LIBRARY_ID` = the library ID (find it in the
      audiobookshelf URL when browsing a library)
-5. Click **Save**.
+5. For multiple audiobookshelf users sharing one Echo household, also
+   add:
+   - `ABS_USERS` = JSON object mapping each Alexa `deviceId` to its
+     own API key, e.g.
+     `{"amzn1.ask.device.AAA...":"key-alice","amzn1.ask.device.BBB...":"key-bob"}`.
+     See *Multi-user setup* below for how to find a device's ID.
+6. Click **Save**.
 
 While you're in **Configuration**, also bump the function timeout —
 the default 3 seconds is too tight for a cold-start Lambda calling
@@ -412,6 +421,64 @@ the Alexa app.
 > "There was a problem"), wait 10 seconds and try again — the
 > Lambda is warm now.
 
+### Multi-user setup (optional)
+
+By default the skill uses the single `ABS_API_KEY` for every Echo —
+fine for a one-person household. If multiple people share a household
+of Echos and each has their own audiobookshelf user (so progress,
+"continue listening", and the in-progress list are kept separate),
+you can map each Echo to a different audiobookshelf API key.
+
+**How it works.** Every Alexa request includes a stable `deviceId` in
+`context.System.device.deviceId`. The skill looks the deviceId up in
+the optional `ABS_USERS` JSON env var; on a hit it uses that user's
+API key, on a miss it falls back to `ABS_API_KEY` (the household
+default), and if neither matches it speaks an error asking the admin
+to add the device.
+
+**Setup.**
+
+1. Create one audiobookshelf API key per person (audiobookshelf web
+   UI → Settings → Users → API Keys, on each user's account).
+2. Find each Echo's `deviceId`:
+   - In audiobookshelf, watch the Lambda's CloudWatch logs (Lambda →
+     Monitor → View logs in CloudWatch) while you say
+     "Alexa, open my audiobooks" on the target Echo. The
+     `Audiobookshelf client init failed: ... deviceId: amzn1.ask.device.XXX`
+     log line is printed for unmapped devices.
+   - Alternatively, add a one-line `console.log('deviceId:', deviceIdOf(h))`
+     in any handler and redeploy, or look at the request envelope in
+     the Alexa Test simulator's JSON Input panel.
+3. Add the `ABS_USERS` env var to the Lambda. Value is a JSON object
+   mapping deviceId to API key:
+   ```json
+   {
+     "amzn1.ask.device.AAA...kitchen": "eyJhbGc...key-alice",
+     "amzn1.ask.device.BBB...bedroom": "eyJhbGc...key-bob"
+   }
+   ```
+   (one line, no real newlines — paste it as a single string into the
+   Lambda env var editor)
+4. Optional: keep `ABS_API_KEY` set as a household-default fallback so
+   any not-yet-mapped Echo still works. Drop it if you'd rather have
+   unmapped Echos refuse to play.
+5. **Save** and re-test on each Echo: "Alexa, open my audiobooks" →
+   "what am I listening to?" should now return that Echo's user's
+   in-progress list.
+
+**Caveats.**
+
+- This is per *device*, not per *person*. Anyone speaking to the
+  kitchen Echo gets that Echo's mapped user. Alexa Voice Profiles
+  could distinguish speakers but are not used here.
+- The Alexa mobile app and some Echo Show "everywhere" surfaces
+  expose less stable deviceIds. Set `ABS_API_KEY` as a sane default
+  for those.
+- Proper per-person separation (one Amazon account → one
+  audiobookshelf user, regardless of which Echo) would require Alexa
+  account linking via OAuth, which audiobookshelf does not natively
+  speak.
+
 ### Troubleshooting
 
 | Symptom | Likely cause / fix |
@@ -419,6 +486,7 @@ the Alexa app.
 | **Echo: "There was a problem with the requested skill's response"** — but the skill opens fine and only fails on `continue` / `play …` | The **AudioPlayer interface is not enabled** for the skill. Go to the skill builder → **Interfaces** → toggle **Audio Player** ON → **Save** → **Build skill**. (See Step 10b.) |
 | **Echo: "I don't know how to help you with that"** when you say "Alexa, open …" | Either (a) the skill's **Test toggle is "Off"** in the developer console (set to **Development**), or (b) the **invocation name** can't be transcribed by Alexa's speech recognition. Check the Alexa **voice history** (alexa.amazon.com → Activity → Voice history) to see what Alexa thought you said, and pick a multi-word invocation name that matches the transcription. |
 | **Echo: "I could not reach your audiobookshelf server"** | API key is wrong, expired, or disabled. Re-create in audiobookshelf and update `ABS_API_KEY` in Lambda env. |
+| **Echo: "This Echo is not mapped to an audiobookshelf user yet"** | Multi-user mode is on (`ABS_USERS` set) but this Echo's `deviceId` isn't in the map and no `ABS_API_KEY` fallback is configured. Read the `deviceId` from CloudWatch (`Audiobookshelf client init failed: ... deviceId: amzn1.ask.device.XXX`) and add it to `ABS_USERS`, or set an `ABS_API_KEY` household default. |
 | **First playback request times out, second works** | Lambda cold start + slow upstream call; pre-warm with a quick `open my audiobooks` first, then issue the `continue`. Already mitigated by the 10 s timeout from Step 8. |
 | **Skill responds in the wrong language** | The skill builder language doesn't match your Echo. Add the missing locale in the skill builder, or switch your skill's primary locale. Make sure your Echo's language matches under **Alexa app → Devices → \<Echo\> → Language**. |
 | **Skill is not on your Echo at all** | The Echo and the developer console must use the **same Amazon account**. Check **Alexa app → More → Skills & Games → Your Skills → Dev** — the skill should appear there. If it doesn't, you used different accounts. |
@@ -495,7 +563,7 @@ afterwards (Lambda console → Configuration → Environment variables, or
 ```bash
 cd lambda
 npm install
-npm test            # 39 tests across helpers, HTTP client, and the handler
+npm test            # 45 tests across helpers, HTTP client, and the handler
 node --check index.js
 ```
 
@@ -560,9 +628,11 @@ phrases need the skill name.
 
 ## Limitations / known gaps
 
-- **Personal use only.** There is no account linking; the same
-  `ABS_API_KEY` is used for every invocation. Don't publish this skill
-  on the public Alexa store as-is.
+- **Personal use only.** There is no Alexa account linking (OAuth).
+  The skill picks an audiobookshelf user per *device* via `ABS_USERS`
+  (see *Multi-user setup*) or falls back to a single `ABS_API_KEY`,
+  but it cannot distinguish speakers within the same Echo. Don't
+  publish this skill on the public Alexa store as-is.
 - **Search is best-effort.** The skill first tries audiobookshelf's
   server-side search with several query variants (raw, dehyphenated,
   article-stripped, longest-keyword) and falls back to a local
@@ -745,7 +815,7 @@ git clone https://github.com/<dein-fork-oder-dieses-repo>/audiobookshelf-alexa.g
 cd audiobookshelf-alexa
 cd lambda
 npm install
-npm test    # sollte "39 pass" zeigen — beweist, dass der Code lokal läuft
+npm test    # sollte "45 pass" zeigen — beweist, dass der Code lokal läuft
 cd ..
 ```
 
@@ -841,12 +911,22 @@ Weiter auf der Lambda-Seite:
 3. **Edit** → zweimal **Add environment variable**:
    - `ABS_BASE_URL` = audiobookshelf-URL, **ohne abschließenden Slash**
      (z. B. `https://abs.deinedomain.de`)
-   - `ABS_API_KEY` = der in Schritt 2 kopierte API-Key
+   - `ABS_API_KEY` = der in Schritt 2 kopierte API-Key. Wird als
+     Haushalts-Standard verwendet — jedes Echo greift damit auf
+     denselben audiobookshelf-Benutzer zu, sofern du nicht zusätzlich
+     `ABS_USERS` setzt (siehe *Mehrbenutzer-Setup* unten).
 4. Optional eine dritte, falls du mehrere Bibliotheken hast und eine
    festlegen willst:
    - `ABS_DEFAULT_LIBRARY_ID` = die Bibliotheks-ID (in der
      audiobookshelf-URL beim Browsen einer Bibliothek sichtbar)
-5. **Save**.
+5. Für mehrere audiobookshelf-Benutzer im selben Echo-Haushalt
+   zusätzlich:
+   - `ABS_USERS` = JSON-Objekt, das jede Alexa-`deviceId` auf einen
+     eigenen API-Key abbildet, z. B.
+     `{"amzn1.ask.device.AAA...":"key-alice","amzn1.ask.device.BBB...":"key-bob"}`.
+     Wie man die Geräte-ID herausfindet, steht unter
+     *Mehrbenutzer-Setup*.
+6. **Save**.
 
 Im Tab **Configuration** auch das Funktions-Timeout erhöhen — die
 Standard-3-Sekunden sind für einen kalten Lambda-Aufruf gegen
@@ -983,6 +1063,64 @@ keine Veröffentlichung, keine "Installation" in der Alexa-App nötig.
 > liegt ein Problem vor"), 10 Sekunden warten und nochmal — dann ist
 > die Lambda warm.
 
+### Mehrbenutzer-Setup (optional)
+
+Standardmäßig verwendet der Skill den einen `ABS_API_KEY` für jedes
+Echo — passt für einen Single-Haushalt. Wenn mehrere Personen einen
+Echo-Haushalt teilen und jede einen eigenen audiobookshelf-Benutzer
+haben soll (damit Fortschritt, "weiterhören" und die Liste laufender
+Bücher getrennt bleiben), kannst du jedem Echo einen eigenen
+audiobookshelf-API-Key zuweisen.
+
+**So funktioniert's.** Jeder Alexa-Request enthält in
+`context.System.device.deviceId` eine stabile Geräte-ID. Der Skill
+schlägt diese ID in der optionalen Env-Variable `ABS_USERS` (JSON)
+nach: bei Treffer wird der Key dieses Benutzers verwendet, bei
+Fehlschlag fällt er auf `ABS_API_KEY` (Haushalts-Standard) zurück.
+Greift keines, sagt der Skill ansage, dass das Gerät noch nicht
+zugeordnet ist.
+
+**Einrichtung.**
+
+1. In audiobookshelf einen API-Key pro Person erstellen (Web-UI →
+   Settings → Users → API Keys, jeweils im Account des Benutzers).
+2. Die `deviceId` jedes Echos herausfinden:
+   - Lambda-Logs in CloudWatch (Lambda → Monitor → Logs anzeigen)
+     öffnen und am Zielgerät "Alexa, öffne meine hörbücher" sagen.
+     Bei nicht gemappten Geräten erscheint die Zeile
+     `Audiobookshelf client init failed: ... deviceId: amzn1.ask.device.XXX`.
+   - Alternativ kurz `console.log('deviceId:', deviceIdOf(h))` in
+     einen Handler bauen und neu deployen, oder im Test-Simulator im
+     JSON-Input-Panel nachschauen.
+3. Env-Variable `ABS_USERS` an der Lambda setzen — JSON-Objekt, das
+   `deviceId` auf API-Key abbildet:
+   ```json
+   {
+     "amzn1.ask.device.AAA...kueche":  "eyJhbGc...key-alice",
+     "amzn1.ask.device.BBB...schlafzimmer": "eyJhbGc...key-bob"
+   }
+   ```
+   (einzeilig — als ein einziger String in das Lambda-Env-Feld
+   einfügen, ohne echte Zeilenumbrüche)
+4. Optional `ABS_API_KEY` als Haushalts-Standard gesetzt lassen, damit
+   noch nicht gemappte Echos trotzdem funktionieren. Weglassen, wenn
+   nicht gemappte Geräte lieber keine Wiedergabe starten sollen.
+5. **Save** und an jedem Echo testen: "Alexa, öffne meine hörbücher"
+   → "welche bücher höre ich gerade?" sollte jetzt die Liste des
+   diesem Echo zugewiesenen Benutzers zurückgeben.
+
+**Einschränkungen.**
+
+- Die Zuordnung gilt pro *Gerät*, nicht pro *Person*. Wer mit dem
+  Küchen-Echo spricht, bekommt den dort gemappten Benutzer. Alexa
+  Voice Profiles (Sprecher-Erkennung) werden nicht ausgewertet.
+- Die Alexa-Handy-App und manche Echo-Show-„Überall"-Oberflächen
+  haben weniger stabile Geräte-IDs. Für die einen sinnvollen
+  `ABS_API_KEY`-Standard setzen.
+- Echte Pro-Person-Trennung (ein Amazon-Konto → ein
+  audiobookshelf-Benutzer, unabhängig vom Echo) bräuchte Alexa
+  Account-Linking via OAuth, das audiobookshelf nicht nativ spricht.
+
 ### Fehlersuche
 
 | Symptom | Wahrscheinliche Ursache / Fix |
@@ -990,6 +1128,7 @@ keine Veröffentlichung, keine "Installation" in der Alexa-App nötig.
 | **Echo: "Bei der Antwort des angeforderten Skill ist ein Problem aufgetreten"** — der Skill öffnet sauber, scheitert nur an `mache weiter` / `spiele …` | Die **AudioPlayer-Schnittstelle ist nicht aktiviert**. Skill Builder → **Interfaces** → **Audio Player** ON → **Save** → **Build skill**. (Siehe Schritt 10b.) |
 | **Echo: "Ich weiß nicht, wie ich dir dabei helfen kann"** bei "Alexa, öffne …" | Entweder (a) der **Test-Schalter** im Developer-Konsole steht auf **"Off"** (auf **Development** stellen), oder (b) der **Aufrufname** wird nicht sauber transkribiert. Im Alexa-**Sprachverlauf** (alexa.amazon.de → Aktivität → Sprachverlauf) ansehen, was Alexa verstanden hat, und einen mehrwortigen Aufrufnamen wählen, der zur Transkription passt. |
 | **Echo: "I could not reach your audiobookshelf server"** | API-Key falsch, abgelaufen oder deaktiviert. In audiobookshelf neu erstellen und `ABS_API_KEY` im Lambda-Env aktualisieren. |
+| **Echo: "Dieses Echo-Gerät ist noch keinem Audiobookshelf-Benutzer zugeordnet"** | Mehrbenutzer-Modus aktiv (`ABS_USERS` gesetzt), aber die `deviceId` dieses Echos steht nicht in der Map und es gibt keinen `ABS_API_KEY`-Fallback. `deviceId` aus CloudWatch ablesen (`Audiobookshelf client init failed: ... deviceId: amzn1.ask.device.XXX`) und in `ABS_USERS` ergänzen, oder einen `ABS_API_KEY`-Haushalts-Standard setzen. |
 | **Erste Wiedergabe-Anfrage läuft in Timeout, zweite klappt** | Lambda Cold Start plus langsamer Upstream; mit kurzem `öffne meine hörbücher` vorwärmen, dann `mache weiter`. Durch das 10-s-Timeout aus Schritt 8 schon abgemildert. |
 | **Skill antwortet auf Englisch, obwohl du Deutsch gesprochen hast** | Skill-Builder-Sprache ist en-US. de-DE-Locale im Skill Builder ergänzen oder Primärsprache umstellen. Echo-Sprache muss ebenfalls Deutsch (Deutschland) unter **Alexa-App → Geräte → \<Echo\> → Sprache** sein. |
 | **Skill ist gar nicht auf deinem Echo** | Echo und Developer Console müssen am **selben Amazon-Konto** hängen. Unter **Alexa-App → Mehr → Fertigkeiten und Spiele → Deine Fertigkeiten → Dev** nachsehen — der Skill sollte dort erscheinen. Sonst hast du verschiedene Konten benutzt. |
@@ -1067,7 +1206,7 @@ Environment variables, oder `aws lambda update-function-configuration`).
 ```bash
 cd lambda
 npm install
-npm test            # 39 Tests über Helfer, HTTP-Client und Handler
+npm test            # 45 Tests über Helfer, HTTP-Client und Handler
 node --check index.js
 ```
 
@@ -1135,9 +1274,12 @@ Skill-Namen.
 
 ## Einschränkungen / bekannte Lücken
 
-- **Nur für Privatgebrauch.** Kein Account-Linking; derselbe
-  `ABS_API_KEY` wird für jede Anfrage verwendet. Diesen Skill nicht
-  unverändert im öffentlichen Alexa-Store veröffentlichen.
+- **Nur für Privatgebrauch.** Kein Alexa-Account-Linking (OAuth).
+  Der Skill kann pro *Gerät* einen audiobookshelf-Benutzer wählen
+  (`ABS_USERS`, siehe *Mehrbenutzer-Setup*) oder fällt auf einen
+  einzigen `ABS_API_KEY` zurück, kann aber Sprecher am selben Echo
+  nicht unterscheiden. Diesen Skill nicht unverändert im öffentlichen
+  Alexa-Store veröffentlichen.
 - **Suche ist Best-Effort.** Der Skill probiert zuerst die
   serverseitige audiobookshelf-Suche mit mehreren Query-Varianten
   (roh, ohne Bindestriche, ohne Artikel, längstes Schlagwort) und

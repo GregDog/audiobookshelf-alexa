@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { AbsClient } = require('../lib/absClient');
+const { AbsClient, fromEnv, resolveApiKey } = require('../lib/absClient');
 
 function fakeFetch(record, opts = {}) {
   return async (url, init) => {
@@ -65,6 +65,55 @@ test('request returns text wrapper when response is not JSON', async () => {
   });
   const out = await c.syncSession('sess-1', { currentTime: 10, duration: 100 });
   assert.deepEqual(out, { ok: true, body: 'OK' });
+});
+
+test('resolveApiKey: device-mapped key wins over default', () => {
+  const env = {
+    ABS_API_KEY: 'default-key',
+    ABS_USERS: JSON.stringify({ 'dev-alice': 'key-alice', 'dev-bob': { apiKey: 'key-bob' } }),
+  };
+  assert.deepEqual(resolveApiKey(env, 'dev-alice'), { apiKey: 'key-alice', source: 'mapped' });
+  assert.deepEqual(resolveApiKey(env, 'dev-bob'), { apiKey: 'key-bob', source: 'mapped' });
+});
+
+test('resolveApiKey: unmapped device falls back to ABS_API_KEY', () => {
+  const env = {
+    ABS_API_KEY: 'default-key',
+    ABS_USERS: JSON.stringify({ 'dev-alice': 'key-alice' }),
+  };
+  assert.deepEqual(resolveApiKey(env, 'dev-unknown'), { apiKey: 'default-key', source: 'default' });
+  assert.deepEqual(resolveApiKey(env, null), { apiKey: 'default-key', source: 'default' });
+});
+
+test('resolveApiKey: returns null when no map entry and no default', () => {
+  const env = { ABS_USERS: JSON.stringify({ 'dev-alice': 'key-alice' }) };
+  assert.equal(resolveApiKey(env, 'dev-unknown'), null);
+});
+
+test('resolveApiKey: malformed ABS_USERS is ignored, falls back to default', () => {
+  const env = { ABS_API_KEY: 'default-key', ABS_USERS: 'not-json' };
+  assert.deepEqual(resolveApiKey(env, 'dev-x'), { apiKey: 'default-key', source: 'default' });
+});
+
+test('fromEnv: throws ABS_NO_KEY with deviceId when nothing matches', () => {
+  const env = { ABS_BASE_URL: 'https://abs.example.com', ABS_USERS: '{}' };
+  try {
+    fromEnv(env, { deviceId: 'dev-x' });
+    assert.fail('expected throw');
+  } catch (err) {
+    assert.equal(err.code, 'ABS_NO_KEY');
+    assert.equal(err.deviceId, 'dev-x');
+  }
+});
+
+test('fromEnv: returns client tagged with key source', () => {
+  const env = {
+    ABS_BASE_URL: 'https://abs.example.com',
+    ABS_API_KEY: 'default-key',
+    ABS_USERS: JSON.stringify({ 'dev-alice': 'key-alice' }),
+  };
+  assert.equal(fromEnv(env, { deviceId: 'dev-alice' }).keySource, 'mapped');
+  assert.equal(fromEnv(env, { deviceId: 'dev-other' }).keySource, 'default');
 });
 
 test('startPlaybackSession posts expected body', async () => {

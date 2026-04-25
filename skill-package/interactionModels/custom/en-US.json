@@ -1,0 +1,166 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "my audiobooks",
+      "intents": [
+        { "name": "AMAZON.CancelIntent", "samples": [] },
+        { "name": "AMAZON.HelpIntent", "samples": [] },
+        { "name": "AMAZON.StopIntent", "samples": [] },
+        { "name": "AMAZON.PauseIntent", "samples": [] },
+        { "name": "AMAZON.ResumeIntent", "samples": [] },
+        { "name": "AMAZON.NextIntent", "samples": [] },
+        { "name": "AMAZON.PreviousIntent", "samples": [] },
+        {
+          "name": "NextChapterIntent",
+          "slots": [],
+          "samples": [
+            "next chapter",
+            "skip to next chapter",
+            "go to next chapter",
+            "one chapter forward"
+          ]
+        },
+        {
+          "name": "PreviousChapterIntent",
+          "slots": [],
+          "samples": [
+            "previous chapter",
+            "last chapter",
+            "go back a chapter",
+            "one chapter back"
+          ]
+        },
+        { "name": "AMAZON.LoopOnIntent", "samples": [] },
+        { "name": "AMAZON.LoopOffIntent", "samples": [] },
+        { "name": "AMAZON.ShuffleOnIntent", "samples": [] },
+        { "name": "AMAZON.ShuffleOffIntent", "samples": [] },
+        { "name": "AMAZON.StartOverIntent", "samples": [] },
+        { "name": "AMAZON.FallbackIntent", "samples": [] },
+        {
+          "name": "PlayBookIntent",
+          "slots": [
+            { "name": "bookTitle", "type": "AMAZON.SearchQuery" }
+          ],
+          "samples": [
+            "play {bookTitle}",
+            "play the audiobook {bookTitle}",
+            "play the book {bookTitle}",
+            "start {bookTitle}",
+            "listen to {bookTitle}",
+            "read {bookTitle}",
+            "i want to listen to {bookTitle}",
+            "open {bookTitle}"
+          ]
+        },
+        {
+          "name": "ContinueListeningIntent",
+          "slots": [
+            { "name": "bookTitle", "type": "AMAZON.SearchQuery" }
+          ],
+          "samples": [
+            "continue",
+            "continue listening",
+            "keep listening",
+            "resume listening",
+            "where i left off",
+            "pick up where i left off",
+            "continue {bookTitle}",
+            "resume {bookTitle}",
+            "keep listening to {bookTitle}"
+          ]
+        },
+        {
+          "name": "ListInProgressIntent",
+          "slots": [],
+          "samples": [
+            "what am i listening to",
+            "what books am i listening to",
+            "my in progress books",
+            "which books did i start",
+            "what is in progress"
+          ]
+        },
+        {
+          "name": "ListLibrariesIntent",
+          "slots": [],
+          "samples": [
+            "list my libraries",
+            "what libraries do i have",
+            "show my libraries"
+          ]
+        },
+        {
+          "name": "RecentBooksIntent",
+          "slots": [],
+          "samples": [
+            "what are the latest audiobooks",
+            "new audiobooks",
+            "recently added books",
+            "what is new"
+          ]
+        },
+        {
+          "name": "SeekForwardIntent",
+          "slots": [
+            { "name": "duration", "type": "AMAZON.NUMBER" },
+            { "name": "unit", "type": "TimeUnit" }
+          ],
+          "samples": [
+            "skip {duration} {unit} forward",
+            "skip forward {duration} {unit}",
+            "jump {duration} {unit} forward",
+            "fast forward {duration} {unit}",
+            "{duration} {unit} forward"
+          ]
+        },
+        {
+          "name": "SeekBackwardIntent",
+          "slots": [
+            { "name": "duration", "type": "AMAZON.NUMBER" },
+            { "name": "unit", "type": "TimeUnit" }
+          ],
+          "samples": [
+            "skip {duration} {unit} back",
+            "skip back {duration} {unit}",
+            "jump {duration} {unit} back",
+            "rewind {duration} {unit}",
+            "{duration} {unit} back"
+          ]
+        },
+        {
+          "name": "SetSleepTimerIntent",
+          "slots": [
+            { "name": "duration", "type": "AMAZON.NUMBER" },
+            { "name": "unit", "type": "TimeUnit" }
+          ],
+          "samples": [
+            "set a sleep timer for {duration} {unit}",
+            "sleep timer {duration} {unit}",
+            "stop in {duration} {unit}",
+            "turn off in {duration} {unit}",
+            "go to sleep in {duration} {unit}"
+          ]
+        },
+        {
+          "name": "CancelSleepTimerIntent",
+          "slots": [],
+          "samples": [
+            "cancel sleep timer",
+            "sleep timer off",
+            "stop the sleep timer",
+            "turn off sleep timer"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "TimeUnit",
+          "values": [
+            { "name": { "value": "seconds", "synonyms": ["second", "sec", "secs"] } },
+            { "name": { "value": "minutes", "synonyms": ["minute", "min", "mins"] } }
+          ]
+        }
+      ]
+    }
+  }
+}

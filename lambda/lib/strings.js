@@ -5,11 +5,12 @@
 // locale.
 
 const en = {
-  welcome: 'Welcome to Audiobookshelf. You can say "play" followed by a book title, or "continue" to resume where you left off. What would you like to do?',
+  welcome: 'Our Library. Say play and a title, or continue.',
   help: 'Try: "play The Hobbit", "continue listening", "next chapter", "skip 30 seconds back", or "set a sleep timer for 30 minutes". You can also say "stop" at any time.',
   goodbye: 'Goodbye.',
   notConfigured: 'The skill is not configured yet. Please set the audiobookshelf base URL and A P I key in the Lambda environment variables.',
   serverError: 'I could not reach your audiobookshelf server right now. Please try again later.',
+  didntUnderstand: 'Sorry, I did not understand that. Say play and a title, or continue.',
   noQuery: 'Which book would you like to play?',
   bookNotFound: (q) => `I could not find an audiobook matching ${q}.`,
   playing: (title, author) => author
@@ -66,7 +67,7 @@ const de = {
   noSleepTimer: 'Es ist kein Sleep Timer aktiv.',
 };
 
-const tables = { 'en-US': en, 'de-DE': de };
+const tables = { 'en-US': en, 'en-GB': en };
 
 function t(locale) {
   const table = tables[locale] || (locale && locale.startsWith('de') ? de : en);

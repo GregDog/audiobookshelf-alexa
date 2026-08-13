@@ -106,12 +106,26 @@ class AbsClient {
 
   // Build an absolute, authenticated stream URL Alexa's AudioPlayer can fetch.
   // contentUrl is whatever startPlaybackSession returned in audioTracks[i].contentUrl.
-  streamUrlFor(contentUrl) {
-    const absolute = contentUrl.startsWith('http')
+  // Alexa infers codec from the URL path extension; ABS often returns extensionless
+  // /api/items/.../file/<ino> paths, so we add a fake suffix (stripped by Caddy).
+  streamUrlFor(contentUrl, mimeType) {
+    let absolute = contentUrl.startsWith('http')
       ? contentUrl
       : `${this.baseUrl}${contentUrl.startsWith('/') ? '' : '/'}${contentUrl}`;
+    absolute = this.withAlexaStreamExtension(absolute, mimeType);
     const sep = absolute.includes('?') ? '&' : '?';
     return `${absolute}${sep}token=${encodeURIComponent(this.apiKey)}`;
+  }
+
+  withAlexaStreamExtension(url, mimeType) {
+    const qIndex = url.indexOf('?');
+    const base = qIndex === -1 ? url : url.slice(0, qIndex);
+    const query = qIndex === -1 ? '' : url.slice(qIndex);
+    if (/\.(mp3|m4a|m4b|mp4|aac|ogg)$/i.test(base)) return url;
+    const type = String(mimeType || '').toLowerCase();
+    const ext = type.includes('mpeg') ? '.mp3'
+      : (type.includes('mp4') || type.includes('aac') ? '.mp4' : '.mp3');
+    return `${base}${ext}${query}`;
   }
 }
 

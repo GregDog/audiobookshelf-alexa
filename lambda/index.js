@@ -110,7 +110,7 @@ async function localFuzzyFindBook(client, libraryId, query) {
   if (!qNorm || qNorm.length < 3) return null;
 
   // For typical personal libraries (< ~1000 titles), one big page is fine.
-  const page = await client.listItems(libraryId, { limit: 1000, page: 0 });
+  const page = await client.listItems(libraryId, { limit: 300, page: 0 });
   const items = (page.results || page.items || page || []);
 
   let best = null;
@@ -136,16 +136,23 @@ async function localFuzzyFindBook(client, libraryId, query) {
 }
 
 async function findBook(client, libraryId, query) {
-  // Fast path: server-side search with a few query variants.
-  for (const q of searchVariants(query)) {
-    const results = await client.search(libraryId, q, { limit: 5 });
+  const variants = searchVariants(query);
+  const searches = await Promise.all(
+    variants.map((q) => client.search(libraryId, q, { limit: 5 }).catch(() => null)),
+  );
+  for (const results of searches) {
+    if (!results) continue;
     const hits = (results.book || results.items || []).map((h) => h.libraryItem || h);
     if (hits.length) return hits[0];
   }
-  // Slow path: local fuzzy match over the whole library. Catches
-  // mashed-together transcriptions like Alexa's "asyllotterie" for
-  // "Asyl-Lotterie".
   return localFuzzyFindBook(client, libraryId, query);
+}
+
+async function itemWithProgress(client, item) {
+  const progress = item.userMediaProgress
+    || (item.media && item.media.userMediaProgress);
+  if (progress) return item;
+  return client.getItem(item.id);
 }
 
 // Decoded AudioPlayer state from the inbound request (token + offset). Null
@@ -176,7 +183,7 @@ async function buildPlayDirective(client, item, opts = {}) {
   const clampedOffset = Math.max(0, Math.min(bookOffsetSec, bookDuration - 1));
   const { trackIndex, offsetInTrack } = locateTrack(tracks, clampedOffset);
   const track = tracks[trackIndex];
-  const url = client.streamUrlFor(track.contentUrl);
+  const url = client.streamUrlFor(track.contentUrl, track.mimeType);
 
   const tokenState = {
     sessionId: session.id,
@@ -222,7 +229,7 @@ async function buildEnqueueNextDirective(client, prevState) {
   const nextIndex = trackIndex + 1;
   if (!tracks[nextIndex]) return null;
 
-  const url = client.streamUrlFor(tracks[nextIndex].contentUrl);
+  const url = client.streamUrlFor(tracks[nextIndex].contentUrl, tracks[nextIndex].mimeType);
   const newTokenState = {
     ...prevState,
     sessionId: session.id,
@@ -271,7 +278,7 @@ const LaunchRequestHandler = {
   canHandle(h) { return Alexa.getRequestType(h.requestEnvelope) === 'LaunchRequest'; },
   handle(h) {
     const speak = speakerOf(h);
-    return h.responseBuilder.speak(speak('welcome')).reprompt(speak('help')).getResponse();
+    return h.responseBuilder.speak(speak('welcome')).reprompt(speak('noQuery')).getResponse();
   },
 };
 
@@ -382,7 +389,7 @@ const PlayBookIntentHandler = {
       const item = await findBook(client, libraryId, query);
       if (!item) return h.responseBuilder.speak(speak('bookNotFound', query)).getResponse();
 
-      const fullItem = await client.getItem(item.id);
+      const fullItem = await itemWithProgress(client, item);
       const progress = fullItem.userMediaProgress
         || (fullItem.media && fullItem.media.userMediaProgress);
       const resumeAt = progress && !progress.isFinished ? (progress.currentTime || 0) : 0;
@@ -720,12 +727,76 @@ const SessionEndedRequestHandler = {
   handle(h) { return h.responseBuilder.getResponse(); },
 };
 
+const FallbackIntentHandler = {
+  canHandle(h) {
+    return Alexa.getRequestType(h.requestEnvelope) === 'IntentRequest'
+      && Alexa.getIntentName(h.requestEnvelope) === 'AMAZON.FallbackIntent';
+  },
+  handle(h) {
+    const speak = speakerOf(h);
+    return h.responseBuilder.speak(speak('didntUnderstand')).reprompt(speak('noQuery')).getResponse();
+  },
+};
+
+const AmazonBuiltInIntentHandler = {
+  canHandle(h) {
+    if (Alexa.getRequestType(h.requestEnvelope) !== 'IntentRequest') return false;
+    const n = Alexa.getIntentName(h.requestEnvelope);
+    return n === 'AMAZON.StartOverIntent'
+      || n === 'AMAZON.LoopOnIntent'
+      || n === 'AMAZON.LoopOffIntent'
+      || n === 'AMAZON.ShuffleOnIntent'
+      || n === 'AMAZON.ShuffleOffIntent';
+  },
+  handle(h) {
+    const speak = speakerOf(h);
+    return h.responseBuilder.speak(speak('notPlaying')).getResponse();
+  },
+};
+
+const UnhandledIntentHandler = {
+  canHandle(h) {
+    return Alexa.getRequestType(h.requestEnvelope) === 'IntentRequest';
+  },
+  handle(h) {
+    const intent = Alexa.getIntentName(h.requestEnvelope);
+    console.warn('Unhandled intent:', intent);
+    const speak = speakerOf(h);
+    return h.responseBuilder.speak(speak('didntUnderstand')).reprompt(speak('noQuery')).getResponse();
+  },
+};
+
+const SystemExceptionHandler = {
+  canHandle(h) {
+    return Alexa.getRequestType(h.requestEnvelope) === 'System.ExceptionEncountered';
+  },
+  handle(h) {
+    console.error('System.ExceptionEncountered:', JSON.stringify(h.requestEnvelope.request));
+    return h.responseBuilder.getResponse();
+  },
+};
+
+const LogRequestInterceptor = {
+  process(input) {
+    const req = input.requestEnvelope.request;
+    const intent = req.type === 'IntentRequest' ? req.intent && req.intent.name : undefined;
+    console.log('Request:', req.type, intent || '');
+  },
+};
+
 const ErrorHandler = {
   canHandle() { return true; },
   handle(h, err) {
-    console.error('Unhandled error:', err);
+    const reqType = Alexa.getRequestType(h.requestEnvelope);
+    const intent = reqType === 'IntentRequest' ? Alexa.getIntentName(h.requestEnvelope) : '';
+    const msg = err && (err.message || String(err));
+    const unhandled = msg && msg.includes('Unable to find a suitable request handler');
+    console.error('Error:', reqType, intent, msg || err);
     const speak = speakerOf(h);
-    return h.responseBuilder.speak(speak('serverError')).getResponse();
+    return h.responseBuilder
+      .speak(speak(unhandled ? 'didntUnderstand' : 'serverError'))
+      .reprompt(speak('noQuery'))
+      .getResponse();
   },
 };
 
@@ -751,8 +822,13 @@ exports.handler = Alexa.SkillBuilders.custom()
     PlaybackControllerHandler,
     HelpIntentHandler,
     AudioPlayerEventHandler,
+    FallbackIntentHandler,
+    AmazonBuiltInIntentHandler,
+    UnhandledIntentHandler,
+    SystemExceptionHandler,
     SessionEndedRequestHandler,
   )
+  .addRequestInterceptors(LogRequestInterceptor)
   .addErrorHandlers(ErrorHandler)
   .lambda();
 

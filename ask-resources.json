@@ -14,7 +14,10 @@
         "userConfig": {
           "runtime": "nodejs20.x",
           "handler": "index.handler",
-          "awsRegion": "us-east-1"
+          "awsRegion": "us-east-1",
+          "lambda": {
+            "functionName": "audiobookshelf-alexa"
+          }
         },
         "type": "@ask-cli/lambda-deployer"
       }

@@ -36,7 +36,7 @@ test('LaunchRequest speaks welcome (de-DE)', async () => {
 
 test('LaunchRequest speaks welcome (en-US)', async () => {
   const res = await invoke(handler, launch({ locale: 'en-US' }));
-  assert.match(speech(res), /Welcome to Audiobookshelf/);
+  assert.match(speech(res), /Our Library/);
 });
 
 test('ListLibrariesIntent reads library names', async () => {

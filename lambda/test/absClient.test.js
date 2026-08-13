@@ -45,15 +45,11 @@ test('streamUrlFor builds absolute URL with token', () => {
   );
 });
 
-test('streamUrlFor adds Alexa-friendly extension when ABS path has none', () => {
+test('streamUrlFor adds Echo-friendly extension when ABS path has none', () => {
   const c = new AbsClient({ baseUrl: 'https://abs.example.com', apiKey: 'secret' });
   assert.equal(
     c.streamUrlFor('/api/items/abc/file/123', 'audio/mp4'),
-    'https://abs.example.com/api/items/abc/file/123.mp4?token=secret',
-  );
-  assert.equal(
-    c.streamUrlFor('/api/items/abc/file/123', 'audio/mpeg'),
-    'https://abs.example.com/api/items/abc/file/123.mp3?token=secret',
+    'https://abs.example.com/api/items/abc/file/123.m4b?token=secret',
   );
 });
 

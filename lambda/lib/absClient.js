@@ -1,5 +1,12 @@
 'use strict';
 
+const dns = require('dns');
+// Node 17+ prefers IPv6; Lambda egress is IPv4-only in many regions. Without
+// this, fetch() can hang until the Lambda timeout when Cloudflare publishes AAAA.
+dns.setDefaultResultOrder('ipv4first');
+
+const FETCH_TIMEOUT_MS = 8000;
+
 // Thin client for the audiobookshelf HTTP API.
 // Docs: https://api.audiobookshelf.org/
 //
@@ -25,8 +32,10 @@ class AbsClient {
         Authorization: `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        'User-Agent': 'audiobookshelf-alexa/0.1',
       },
       body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
@@ -104,10 +113,9 @@ class AbsClient {
     return this.request('/api/me');
   }
 
-  // Build an absolute, authenticated stream URL Alexa's AudioPlayer can fetch.
-  // contentUrl is whatever startPlaybackSession returned in audioTracks[i].contentUrl.
-  // Alexa infers codec from the URL path extension; ABS often returns extensionless
-  // /api/items/.../file/<ino> paths, so we add a fake suffix (stripped by Caddy).
+  // Build an absolute, authenticated stream URL for Echo's AudioPlayer.
+  // ABS paths are extensionless; Echo picks codec from the URL suffix, so we
+  // add a fake extension that Caddy strips before proxying to Audiobookshelf.
   streamUrlFor(contentUrl, mimeType) {
     let absolute = contentUrl.startsWith('http')
       ? contentUrl
@@ -124,7 +132,7 @@ class AbsClient {
     if (/\.(mp3|m4a|m4b|mp4|aac|ogg)$/i.test(base)) return url;
     const type = String(mimeType || '').toLowerCase();
     const ext = type.includes('mpeg') ? '.mp3'
-      : (type.includes('mp4') || type.includes('aac') ? '.mp4' : '.mp3');
+      : (type.includes('mp4') || type.includes('aac') ? '.m4b' : '.mp3');
     return `${base}${ext}${query}`;
   }
 }

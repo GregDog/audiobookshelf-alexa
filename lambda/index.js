@@ -33,6 +33,12 @@ function getClient(handlerInput) {
   }
 }
 
+// AudioPlayer directives require an open session — without this Alexa can
+// drop playback or behave erratically after PlayBookIntent.
+function audioPlayResponse(h, builderFn) {
+  return builderFn(h.responseBuilder).withShouldEndSession(false).getResponse();
+}
+
 async function resolveLibraryId(client) {
   if (process.env.ABS_DEFAULT_LIBRARY_ID) return process.env.ABS_DEFAULT_LIBRARY_ID;
   const { libraries = [] } = await client.listLibraries();
@@ -136,14 +142,14 @@ async function localFuzzyFindBook(client, libraryId, query) {
 }
 
 async function findBook(client, libraryId, query) {
-  const variants = searchVariants(query);
-  const searches = await Promise.all(
-    variants.map((q) => client.search(libraryId, q, { limit: 5 }).catch(() => null)),
-  );
-  for (const results of searches) {
-    if (!results) continue;
-    const hits = (results.book || results.items || []).map((h) => h.libraryItem || h);
-    if (hits.length) return hits[0];
+  for (const q of searchVariants(query)) {
+    try {
+      const results = await client.search(libraryId, q, { limit: 5 });
+      const hits = (results.book || results.items || []).map((h) => h.libraryItem || h);
+      if (hits.length) return hits[0];
+    } catch (err) {
+      console.warn('search failed:', q, err.message || err);
+    }
   }
   return localFuzzyFindBook(client, libraryId, query);
 }
@@ -395,7 +401,8 @@ const PlayBookIntentHandler = {
       const resumeAt = progress && !progress.isFinished ? (progress.currentTime || 0) : 0;
 
       const { directive, title, author } = await buildPlayDirective(client, fullItem, { bookOffsetSec: resumeAt });
-      return h.responseBuilder.speak(speak('playing', title, author)).addDirective(directive).getResponse();
+      console.log('PlayBookIntent playing', { title, trackUrl: directive.audioItem.stream.url.split('?')[0] });
+      return audioPlayResponse(h, (rb) => rb.speak(speak('playing', title, author)).addDirective(directive));
     } catch (err) {
       console.error('PlayBookIntent error:', err);
       return h.responseBuilder.speak(speak('serverError')).getResponse();
@@ -426,7 +433,7 @@ const ContinueListeningIntentHandler = {
           const { directive } = await relaunchAtOffset(client, {
             ...state, bookOffset: (state.trackStart || 0) + (ap.offsetInMilliseconds || 0) / 1000,
           }, (state.trackStart || 0) + (ap.offsetInMilliseconds || 0) / 1000);
-          return h.responseBuilder.addDirective(directive).getResponse();
+          return audioPlayResponse(h, (rb) => rb.addDirective(directive));
         } catch (err) {
           console.error('Resume current playback failed:', err);
         }
@@ -459,7 +466,7 @@ const ContinueListeningIntentHandler = {
         || (item.media && item.media.userMediaProgress);
       const resumeAt = progress && !progress.isFinished ? (progress.currentTime || 0) : 0;
       const { directive, title, author } = await buildPlayDirective(client, item, { bookOffsetSec: resumeAt });
-      return h.responseBuilder.speak(speak('resuming', title, author)).addDirective(directive).getResponse();
+      return audioPlayResponse(h, (rb) => rb.speak(speak('resuming', title, author)).addDirective(directive));
     } catch (err) {
       console.error('ContinueListeningIntent error:', err);
       return h.responseBuilder.speak(speak('serverError')).getResponse();
@@ -515,10 +522,9 @@ async function moveByChapter(h, direction) {
       bookOffsetSec: target.start,
       sleepDeadline: current.sleepDeadline || null,
     });
-    return h.responseBuilder
+    return audioPlayResponse(h, (rb) => rb
       .speak(speak('movedToChapter', target.title || `${targetIdx + 1}`))
-      .addDirective(directive)
-      .getResponse();
+      .addDirective(directive));
   } catch (err) {
     console.error('moveByChapter error:', err);
     return h.responseBuilder.speak(speak('serverError')).getResponse();
@@ -561,10 +567,9 @@ async function seekBy(h, sign) {
   try {
     const { directive } = await relaunchAtOffset(client, current, newOffset);
     const key = sign > 0 ? 'seekedForward' : 'seekedBackward';
-    return h.responseBuilder
+    return audioPlayResponse(h, (rb) => rb
       .speak(speak(key, n, unitLabel(locale, unit, n)))
-      .addDirective(directive)
-      .getResponse();
+      .addDirective(directive));
   } catch (err) {
     console.error('seekBy error:', err);
     return h.responseBuilder.speak(speak('serverError')).getResponse();
@@ -598,10 +603,9 @@ const SetSleepTimerIntentHandler = {
 
     try {
       const { directive } = await relaunchAtOffset(client, current, current.bookOffset, { sleepDeadline: deadline });
-      return h.responseBuilder
+      return audioPlayResponse(h, (rb) => rb
         .speak(speak('sleepTimerSet', n, unitLabel(locale, unit, n)))
-        .addDirective(directive)
-        .getResponse();
+        .addDirective(directive));
     } catch (err) {
       console.error('SetSleepTimerIntent error:', err);
       return h.responseBuilder.speak(speak('serverError')).getResponse();
@@ -623,7 +627,7 @@ const CancelSleepTimerIntentHandler = {
     if (!client) return h.responseBuilder.speak(h.__speech).getResponse();
     try {
       const { directive } = await relaunchAtOffset(client, current, current.bookOffset, { sleepDeadline: null });
-      return h.responseBuilder.speak(speak('sleepTimerCancelled')).addDirective(directive).getResponse();
+      return audioPlayResponse(h, (rb) => rb.speak(speak('sleepTimerCancelled')).addDirective(directive));
     } catch (err) {
       console.error('CancelSleepTimerIntent error:', err);
       return h.responseBuilder.speak(speak('serverError')).getResponse();
@@ -642,7 +646,7 @@ const PauseIntentHandler = {
     return n === 'AMAZON.PauseIntent' || n === 'AMAZON.StopIntent' || n === 'AMAZON.CancelIntent';
   },
   handle(h) {
-    return h.responseBuilder.addDirective({ type: 'AudioPlayer.Stop' }).getResponse();
+    return audioPlayResponse(h, (rb) => rb.addDirective({ type: 'AudioPlayer.Stop' }));
   },
 };
 
@@ -653,7 +657,7 @@ const PlaybackControllerHandler = {
   async handle(h) {
     const type = h.requestEnvelope.request.type;
     if (type === 'PlaybackController.PauseCommandIssued') {
-      return h.responseBuilder.addDirective({ type: 'AudioPlayer.Stop' }).getResponse();
+      return audioPlayResponse(h, (rb) => rb.addDirective({ type: 'AudioPlayer.Stop' }));
     }
     if (type === 'PlaybackController.PlayCommandIssued') {
       const current = currentPlaybackState(h);
@@ -661,7 +665,7 @@ const PlaybackControllerHandler = {
       const client = getClient(h);
       if (!client) return h.responseBuilder.getResponse();
       const { directive } = await relaunchAtOffset(client, current, current.bookOffset);
-      return h.responseBuilder.addDirective(directive).getResponse();
+      return audioPlayResponse(h, (rb) => rb.addDirective(directive));
     }
     if (type === 'PlaybackController.NextCommandIssued') return moveByChapter(h, +1);
     if (type === 'PlaybackController.PreviousCommandIssued') return moveByChapter(h, -1);
@@ -712,7 +716,7 @@ const AudioPlayerEventHandler = {
           console.warn('enqueue next failed:', e.message);
           return null;
         });
-        if (next) return h.responseBuilder.addDirective(next).getResponse();
+        if (next) return audioPlayResponse(h, (rb) => rb.addDirective(next));
       }
     } catch (err) {
       console.error('AudioPlayer handler error:', err);
